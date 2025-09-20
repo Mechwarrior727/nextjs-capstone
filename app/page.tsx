@@ -1,20 +1,28 @@
 'use client';
-import {usePrivy} from '@privy-io/react-auth';
+import {usePrivy, useWallets} from '@privy-io/react-auth';
 import Image from "next/image";
 
 export default function Home() {
   const {ready, authenticated, login, logout} = usePrivy();
+  const {wallets} = useWallets();
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         {ready && authenticated ? (
-          <button
-            onClick={logout}
-            className="rounded-full bg-violet-600 hover:bg-violet-700 py-2 px-4 text-white"
-          >
-            Logout
-          </button>
+          <>
+            <button
+              onClick={logout}
+              className="rounded-full bg-violet-600 hover:bg-violet-700 py-2 px-4 text-white"
+            >
+              Logout
+            </button>
+            {wallets.map((wallet) => (
+              <div key={wallet.address} className="font-mono text-sm">
+                <p>Wallet Address: {wallet.address}</p>
+              </div>
+            ))}
+          </>
         ) : (
           <button
             onClick={login}
