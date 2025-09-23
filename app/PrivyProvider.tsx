@@ -1,3 +1,4 @@
+// Privy integration for auth (SSO/wallet login)
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
