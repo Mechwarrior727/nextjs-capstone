@@ -1,17 +1,21 @@
 'use client';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function Home() {
   const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
 
-  // Determine display name: Google name → Email → Shortened wallet
-  const displayName =
-    user?.google?.name ||
-    user?.email?.address ||
-    (wallets[0]?.address
-      ? wallets[0].address.slice(0, 6) + '...' + wallets[0].address.slice(-4)
-      : null);
+  const displayName = user?.google?.name || user?.email?.address;
+
+  // Get linked wallets from usePrivy (includes embedded wallets)
+  const linkedWallets = user?.linkedAccounts?.filter(account =>
+    account.type === 'wallet'
+  ) || [];
+
+  // Use the first linked wallet for display
+  const displayWallet = linkedWallets[0];
+  const shortAddress = displayWallet?.address
+    ? displayWallet.address.slice(0, 6) + '...' + displayWallet.address.slice(-4)
+    : null;
 
   return (
     <div className="relative min-h-screen font-sans bg-white dark:bg-black text-black dark:text-white">
@@ -25,9 +29,30 @@ export default function Home() {
             >
               Logout
             </button>
-            {wallets.map((wallet) => (
+            {linkedWallets.map((wallet) => (
               <div key={wallet.address} className="font-mono text-sm">
-                <p>Wallet: {wallet.address}</p>
+                <p>
+                  Wallet:{" "}
+                  <span
+                    className="cursor-pointer underline decoration-dotted"
+                    title="Click to copy full address"
+                    onClick={() => {
+                      if (wallet.address) {
+                        navigator.clipboard.writeText(wallet.address);
+                      }
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.textDecoration = "underline solid";
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.textDecoration = "underline dotted";
+                    }}
+                  >
+                    {wallet.address
+                      ? wallet.address.slice(0, 6) + "..." + wallet.address.slice(-4)
+                      : ""}
+                  </span>
+                </p>
               </div>
             ))}
           </>
@@ -46,10 +71,40 @@ export default function Home() {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
           Peer Health Tracking and Commitment
         </h1>
-        {ready && authenticated && displayName && (
-          <p className="mt-2 text-lg font-medium text-green-500">
-            Welcome {displayName}!
-          </p>
+        {ready && authenticated && (
+          <>
+            {displayName ? (
+              <p className="mt-2 text-lg font-medium text-green-500">
+                Welcome {displayName}!
+              </p>
+            ) : shortAddress ? (
+              <p className="mt-2 text-lg font-medium text-green-500">
+                Welcome {shortAddress}!
+              </p>
+            ) : null}
+            {displayName && shortAddress && (
+              <div className="mt-2 font-mono text-sm text-gray-500">
+                Wallet:{" "}
+                <span
+                  className="cursor-pointer underline decoration-dotted"
+                  title="Click to copy full address"
+                  onClick={() => {
+                    if (displayWallet?.address) {
+                      navigator.clipboard.writeText(displayWallet.address);
+                    }
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.textDecoration = "underline solid";
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.textDecoration = "underline dotted";
+                  }}
+                >
+                  {shortAddress}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </main>
 
