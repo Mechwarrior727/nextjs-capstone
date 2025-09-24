@@ -2,8 +2,14 @@
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 
 export default function Home() {
-  const { ready, authenticated, login, logout } = usePrivy();
+  const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
+
+  // Pick a display name (username if available, else email, else wallet)
+  const displayName =
+    user?.username ||
+    user?.email?.address ||
+    wallets[0]?.address?.slice(0, 6) + '...' + wallets[0]?.address?.slice(-4);
 
   return (
     <div className="relative min-h-screen font-sans bg-white dark:bg-black text-black dark:text-white">
@@ -38,6 +44,11 @@ export default function Home() {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
           Peer Health Tracking and Commitment
         </h1>
+        {ready && authenticated && displayName && (
+          <p className="mt-2 text-lg font-medium text-green-500">
+            Welcome {displayName}!
+          </p>
+        )}
       </main>
 
       {/* Delete account button bottom-right */}
