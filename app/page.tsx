@@ -5,11 +5,13 @@ export default function Home() {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
 
-  // Pick a display name (username if available, else email, else wallet)
+  // Determine display name: Google name → Email → Shortened wallet
   const displayName =
-    user?.username ||
+    user?.google?.name ||
     user?.email?.address ||
-    wallets[0]?.address?.slice(0, 6) + '...' + wallets[0]?.address?.slice(-4);
+    (wallets[0]?.address
+      ? wallets[0].address.slice(0, 6) + '...' + wallets[0].address.slice(-4)
+      : null);
 
   return (
     <div className="relative min-h-screen font-sans bg-white dark:bg-black text-black dark:text-white">
