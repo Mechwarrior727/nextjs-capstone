@@ -82,28 +82,6 @@ export default function Home() {
                 Welcome {shortAddress}!
               </p>
             ) : null}
-            {displayName && shortAddress && (
-              <div className="mt-2 font-mono text-sm text-gray-500">
-                Wallet:{" "}
-                <span
-                  className="cursor-pointer underline decoration-dotted"
-                  title="Click to copy full address"
-                  onClick={() => {
-                    if (displayWallet?.address) {
-                      navigator.clipboard.writeText(displayWallet.address);
-                    }
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.textDecoration = "underline solid";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.textDecoration = "underline dotted";
-                  }}
-                >
-                  {shortAddress}
-                </span>
-              </div>
-            )}
           </>
         )}
       </main>
