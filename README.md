@@ -126,12 +126,14 @@ git push origin main
 - Vercel will automatically detect it's a Next.js app
 
 3. **Add Environment Variables:**
-   - In Vercel dashboard, go to your project → Settings → Environment Variables
-   - Add:
+   - Go to your Vercel dashboard
+   - Navigate to your project → Settings → Environment Variables
+   - Add these variables:
      ```
      NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
      PRIVY_APP_SECRET=your-privy-app-secret
      ```
+   - **Important**: The `PRIVY_APP_SECRET` should be added as a secure environment variable (not visible in build logs)
 
 4. **Deploy:**
 - Vercel automatically builds and deploys
@@ -159,6 +161,8 @@ vercel --prod
 vercel env add NEXT_PUBLIC_PRIVY_APP_ID
 vercel env add PRIVY_APP_SECRET
 ```
+   - Enter your actual Privy credentials when prompted
+   - The `PRIVY_APP_SECRET` will be stored securely
 
 ### Environment Variables Setup
 
@@ -166,22 +170,32 @@ vercel env add PRIVY_APP_SECRET
 
 1. **Get your Privy credentials:**
    - Go to [Privy Dashboard](https://dashboard.privy.io)
-   - Navigate to Configuration → App settings
-   - Copy App ID and App Secret
+   - Sign in to your account
+   - Navigate to your app → Configuration → App settings
+   - Copy your **App ID** and **App Secret**
 
 2. **Local development (`.env.local`):**
 ```env
-NEXT_PUBLIC_PRIVY_APP_ID=your-app-id
-PRIVY_APP_SECRET=your-app-secret
+NEXT_PUBLIC_PRIVY_APP_ID=your-app-id-here
+PRIVY_APP_SECRET=your-app-secret-here
 ```
 
 3. **Vercel production:**
-   - Add the same variables in Vercel dashboard
-   - Or use `vercel env add` commands
+   - **Option A (Recommended)**: Add variables in Vercel dashboard:
+     - Go to your project → Settings → Environment Variables
+     - Add `NEXT_PUBLIC_PRIVY_APP_ID` and `PRIVY_APP_SECRET`
+     - Mark `PRIVY_APP_SECRET` as secure (hidden in logs)
+   - **Option B**: Use Vercel CLI:
+     ```bash
+     vercel env add NEXT_PUBLIC_PRIVY_APP_ID
+     vercel env add PRIVY_APP_SECRET
+     ```
+
+**⚠️ Security Note**: Never commit `.env.local` to version control. Add it to `.gitignore`.
 
 ### Vercel Configuration
 
-The `vercel.json` file is already configured:
+The `vercel.json` file is configured for optimal performance:
 
 ```json
 {
@@ -192,6 +206,8 @@ The `vercel.json` file is already configured:
     }
   },
   "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
   "framework": "nextjs"
 }
 ```
@@ -217,11 +233,18 @@ The `vercel.json` file is already configured:
 - **Build failures**: Check environment variables are set
 - **API errors**: Verify Privy credentials are correct
 - **OAuth issues**: Ensure Google OAuth is configured properly
+- **Secret not found**: Make sure environment variables are added in Vercel dashboard
 
 **Check logs:**
 - Vercel dashboard → Deployments → View Logs
+- Vercel dashboard → Functions → Logs (for API route errors)
 - Browser console for frontend errors
 - Network tab for API request details
+
+**Environment Variable Issues:**
+- Ensure `PRIVY_APP_SECRET` is marked as "secure" in Vercel
+- Check that variable names match exactly (case-sensitive)
+- Verify the values are correct (copy-paste from Privy dashboard)
 
 ## How It Works
 

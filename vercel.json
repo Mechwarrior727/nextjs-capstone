@@ -5,9 +5,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "PRIVY_APP_SECRET": "@privy-app-secret"
-  },
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
