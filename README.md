@@ -143,7 +143,7 @@ git push origin main
 
 1. **Install Vercel CLI:**
 ```bash
-npm i -g vercel
+pnpm add -g vercel
 ```
 
 2. **Login to Vercel:**
@@ -195,18 +195,18 @@ PRIVY_APP_SECRET=your-app-secret-here
 
 ### Vercel Configuration
 
-The `vercel.json` file is configured for optimal Next.js deployment:
+The `vercel.json` file is configured for optimal Next.js deployment with pnpm:
 
 ```json
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs"
 }
 ```
 
-**Note**: Next.js API routes are automatically optimized by Vercel. No manual runtime configuration is needed.
+**Note**: The project uses pnpm as the package manager. Vercel automatically detects and uses pnpm for installations.
 
 ### Post-Deployment Steps
 
@@ -246,6 +246,11 @@ The `vercel.json` file is configured for optimal Next.js deployment:
 - Remove custom runtime specifications from `vercel.json`
 - Next.js API routes are handled automatically by Vercel
 - Only specify `framework: "nextjs"` in `vercel.json`
+
+**Package Manager Issues:**
+- Ensure all commands in `vercel.json` use `pnpm` instead of `npm`
+- The `installCommand` should be `pnpm install --frozen-lockfile`
+- Vercel should automatically detect and use pnpm
 
 ## How It Works
 
