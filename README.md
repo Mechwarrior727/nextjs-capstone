@@ -162,7 +162,7 @@ vercel env add NEXT_PUBLIC_PRIVY_APP_ID
 vercel env add PRIVY_APP_SECRET
 ```
    - Enter your actual Privy credentials when prompted
-   - The `PRIVY_APP_SECRET` will be stored securely
+   - The `PRIVY_APP_SECRET` will be stored securely as an environment secret
 
 ### Environment Variables Setup
 
@@ -195,22 +195,18 @@ PRIVY_APP_SECRET=your-app-secret-here
 
 ### Vercel Configuration
 
-The `vercel.json` file is configured for optimal performance:
+The `vercel.json` file is configured for optimal Next.js deployment:
 
 ```json
 {
-  "functions": {
-    "app/api/**/*.ts": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
-  },
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs"
 }
 ```
+
+**Note**: Next.js API routes are automatically optimized by Vercel. No manual runtime configuration is needed.
 
 ### Post-Deployment Steps
 
@@ -245,6 +241,11 @@ The `vercel.json` file is configured for optimal performance:
 - Ensure `PRIVY_APP_SECRET` is marked as "secure" in Vercel
 - Check that variable names match exactly (case-sensitive)
 - Verify the values are correct (copy-paste from Privy dashboard)
+
+**Runtime Configuration Issues:**
+- Remove custom runtime specifications from `vercel.json`
+- Next.js API routes are handled automatically by Vercel
+- Only specify `framework: "nextjs"` in `vercel.json`
 
 ## How It Works
 

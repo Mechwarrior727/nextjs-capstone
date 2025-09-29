@@ -205,8 +205,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Vercel serverless function configuration
-export const config = {
-  runtime: 'nodejs18.x',
-  maxDuration: 30, // Vercel serverless function timeout
-};
+// Note: Vercel automatically handles Next.js API route configuration
+// No manual runtime configuration needed for Next.js API routes
