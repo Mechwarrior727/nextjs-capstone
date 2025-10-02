@@ -56,7 +56,13 @@ async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
+        aggregateBy: [
+          {
+            dataTypeName: "com.google.step_count.delta",
+            dataSourceId:
+              "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps",
+          },
+        ],
         bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 }, // daily buckets
         startTimeMillis,
         endTimeMillis,
