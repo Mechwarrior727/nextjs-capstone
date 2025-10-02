@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // Types for better type safety
@@ -56,13 +57,7 @@ async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        aggregateBy: [
-          {
-            dataTypeName: "com.google.step_count.delta",
-            dataSourceId:
-              "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps",
-          },
-        ],
+        aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
         bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 }, // daily buckets
         startTimeMillis,
         endTimeMillis,
@@ -213,3 +208,4 @@ export async function POST(request: NextRequest) {
 
 // Note: Vercel automatically handles Next.js API route configuration
 // No manual runtime configuration needed for Next.js API routes
+
