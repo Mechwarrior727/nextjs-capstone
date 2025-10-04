@@ -13,7 +13,7 @@ export default function PrivyProviders({
     <PrivyProvider
       appId="cmcwz5y4b0314l10l3kqave7z"
       config={{
-        loginMethods: ["email", "google", "wallet"],
+        loginMethods: ["google"],
         // Create embedded wallets for users who don't have a wallet
         embeddedWallets: {
           solana: {
@@ -24,10 +24,6 @@ export default function PrivyProviders({
           solana: {
             connectors: toSolanaWalletConnectors(),
           },
-        },
-        appearance: {
-          walletList: ["detected_solana_wallets", "phantom", "solflare", "backpack"],
-          walletChainType: "solana-only",
         },
       }}
     >
