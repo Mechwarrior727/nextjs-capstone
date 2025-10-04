@@ -150,8 +150,16 @@ export default function Home() {
       // Try direct Google Fit API call from frontend
       console.log('🚀 Attempting direct Google Fit API call from frontend...');
 
-      const startTimeMillis = Date.now() - (5 * 24 * 60 * 60 * 1000); // 5 days ago
-      const endTimeMillis = Date.now();
+      // Aligned the time window to midnight to prevent splitting calendar days,
+      // which caused inaccurate daily totals. Using local timezone for accuracy.
+      const now = new Date();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      start.setDate(start.getDate() - 4);
+      start.setHours(0, 0, 0, 0);
+
+      const startTimeMillis = start.getTime();
+      const endTimeMillis = end.getTime();
 
       const directResponse = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
         method: 'POST',
@@ -183,7 +191,11 @@ export default function Home() {
           }, 0) || 0;
 
           const d = new Date(Number(b.startTimeMillis));
-          return { date: d.toISOString().split('T')[0], steps };
+          // Using local date parts to avoid timezone conversion errors from .toISOString()
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return { date: `${yyyy}-${mm}-${dd}`, steps };
         }) || [];
 
         const total = days.reduce((s: number, d: any) => s + d.steps, 0);

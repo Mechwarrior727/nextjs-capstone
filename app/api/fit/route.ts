@@ -29,12 +29,15 @@ interface GoogleFitBucket {
 // Calculate date range for the last 5 days
 function getLast5DaysMillis() {
   const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // today 00:00 local
-  const start = new Date(end);
-  start.setDate(end.getDate() - 5);
+  // Aligned the time window to cover 5 full calendar days including today,
+  // using the local timezone to match user's experience.
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  start.setDate(start.getDate() - 4);
+  start.setHours(0, 0, 0, 0);
   return {
     startTimeMillis: start.getTime(),
-    endTimeMillis: end.getTime()
+    endTimeMillis: end.getTime(),
   };
 }
 
@@ -58,7 +61,8 @@ async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
       },
       body: JSON.stringify({
         aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
-        bucketByTime: { durationMillis: 60 * 60 * 1000 }, // daily buckets
+        // Corrected bucket duration from hourly to daily to match intended aggregation.
+        bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 }, // daily buckets
         startTimeMillis,
         endTimeMillis,
       }),
@@ -107,9 +111,10 @@ async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
     }, 0);
 
     const d = new Date(Number(b.startTimeMillis));
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
+    // Switched from UTC to local date parts to prevent timezone-related "off-by-one-day" errors.
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
 
     return { date: `${yyyy}-${mm}-${dd}`, steps };
   });
