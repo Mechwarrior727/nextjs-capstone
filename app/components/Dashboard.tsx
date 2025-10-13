@@ -1,4 +1,20 @@
-      "use client";
+ "use client";
+
+
+interface DashboardProps {
+    ready: any;
+    authenticated: any;
+    displayName: any;
+    shortAddress: any;
+    googleTokens: any;
+    user: any;
+    fetchStepData: any;
+    reauthorize: any;
+    loading: any;
+    error: any;
+    setError: any;
+    fitData: any;
+}
 
 export default function Dashboard({
   ready,
@@ -13,10 +29,10 @@ export default function Dashboard({
   error,
   setError,
   fitData,
-}) {
+}: DashboardProps) {
   return (
     <div className="relative min-h-screen font-sans bg-white dark:bg-black text-black dark:text-white">
-        {/* Centerpiece text */}
+          {/* Centerpiece text */}
       <main className="flex flex-col items-center justify-center h-screen text-center px-4">
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-8">
           Peer Health Tracking and Commitment
@@ -69,7 +85,7 @@ export default function Dashboard({
                       <p>Authenticated: {authenticated ? 'Yes' : 'No'}</p>
                       <p>Google Tokens: {googleTokens ? 'Available' : 'None'}</p>
                       <p>User: {user ? 'Logged in' : 'Not logged in'}</p>
-                      <p>Google Account: {user?.linkedAccounts?.find(a => a.type === 'google_oauth') ? 'Linked' : 'Not linked'}</p>
+                      <p>Google Account: {user?.linkedAccounts?.find((a: any) => a.type === 'google_oauth') ? 'Linked' : 'Not linked'}</p>
                     </div>
                   </details>
                 </div>
@@ -84,7 +100,7 @@ export default function Dashboard({
                   {loading ? 'Loading Step Data...' : 'Get Step Data (Direct API)'}
                 </button>
 
-                {user?.linkedAccounts?.find(a => a.type === 'google_oauth') && (
+                {user?.linkedAccounts?.find((a: any) => a.type === 'google_oauth') && (
                   <button
                     onClick={() => reauthorize({ provider: 'google' })}
                     className="rounded-full bg-green-600 hover:bg-green-700 py-2 px-6 text-white font-medium text-sm"
@@ -145,8 +161,8 @@ export default function Dashboard({
 
                 {/* Simple bar chart visualization */}
                 <div className="mb-6 space-y-2">
-                  {fitData.days.map((day, index) => {
-                    const maxSteps = Math.max(...fitData.days.map(d => d.steps));
+                  {fitData.days.map((day: any, index: any) => {
+                    const maxSteps = Math.max(...fitData.days.map((d: any) => d.steps));
                     const barWidth = maxSteps > 0 ? (day.steps / maxSteps) * 100 : 0;
 
                     return (

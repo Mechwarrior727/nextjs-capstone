@@ -250,6 +250,7 @@ export function useAuth() {
     fitData,
     loading,
     error,
+    setError,
     reauthorize,
     fetchStepData,
     googleTokens,

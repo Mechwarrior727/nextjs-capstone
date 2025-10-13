@@ -1,10 +1,18 @@
 "use client";
 
-export default function Login ({ ready, authenticated, login, logout, linkedWallets }) {
+interface LoginProps {
+    ready: any;
+    authenticated: any;
+    login: any;
+    logout: any;
+    linkedWallets: any;
+}
+
+export default function Login({ ready, authenticated, login, logout, linkedWallets }: LoginProps) {
   return (
     <>
       {/* Top bar with login/logout */}
-      <header className="absolute top-6 right-6 flex flex-col items-end gap-2">
+          <header className="fixed top-6 right-6 flex flex-col items-end gap-2 z-50">
         {ready && authenticated ? (
           <>
             <button
@@ -13,7 +21,7 @@ export default function Login ({ ready, authenticated, login, logout, linkedWall
             >
               Logout
             </button>
-            {linkedWallets.map((wallet) => (
+            {linkedWallets.map((wallet: any) => (
               <div key={wallet.address} className="font-mono text-sm">
                 <p>
                   Wallet:{" "}

@@ -6,10 +6,12 @@ import Dashboard from "@/components/Dashboard";
 import {useAuth} from "@/hooks/useAuth"
 
 
+
 export default function Home() {
     const { ready, authenticated, login, logout, user } = usePrivy();
     const {fitData, loading, error, setError, reauthorize, fetchStepData, googleTokens, linkedWallets, displayName, shortAddress} = useAuth();
 
+    console.log("ready:", ready, "authenticated:", authenticated);
 
   return (
    <>
