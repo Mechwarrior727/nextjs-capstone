@@ -62,9 +62,14 @@ export default function PrivyProviders({
   }
 
   return (
-    <PrivyProvider appId={PRIVY_APP_ID}>
+    <PrivyProvider appId={PRIVY_APP_ID} config={{ loginMethods: ['google'] }}>
       <SyncUser />
       {children}
     </PrivyProvider>
   );
 }
+
+
+
+
+

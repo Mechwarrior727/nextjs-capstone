@@ -100,6 +100,10 @@ export async function requirePrivyUser(
 }
 
 export function getPrimaryEmail(user: PrivyUser): string | null {
+  if (user.google?.email) {
+    return user.google.email;
+  }
+
   if (user.email?.address) {
     return user.email.address;
   }

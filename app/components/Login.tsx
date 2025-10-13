@@ -50,7 +50,7 @@ export default function Login({ ready, authenticated, login, logout, linkedWalle
           </>
         ) : (
           <button
-            onClick={login}
+            onClick={() => login({ method: "google" })}
             className="rounded-full bg-violet-600 hover:bg-violet-700 py-2 px-4 text-white"
           >
             Login
