@@ -1,40 +1,34 @@
-// app/api/db/upsert-user/route.ts
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { requirePrivyUser } from "@/lib/privy";
+import { NextRequest, NextResponse } from "next/server";
+import { getPrimaryEmail, requirePrivySession } from "@/lib/privy";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const privy = await requirePrivyUser();
+    const { user } = await requirePrivySession(req);
 
-    const id = privy.id; // stable privy user id
-    const email = privy.email?.address ?? null;
-    const displayName =
-      privy.google?.name || privy.twitter?.username || email || null;
-    const twitter = privy.twitter?.username ?? null;
-    const googleId = privy.google?.subject ?? null;
-    const wallet =
-      privy.wallet?.address ??
-      privy.linkedAccounts?.find((a) => a.type === "wallet")?.address ??
-      null;
+    const supabase = getSupabaseAdmin();
+    const payload: Record<string, any> = {
+      id: user.id,
+      email: getPrimaryEmail(user),
+    };
 
-    const { error } = await supabaseAdmin.from("users").upsert(
-      {
-        id,
-        display_name: displayName,
-        email,
-        twitter_handle: twitter,
-        google_id: googleId,
-        wallet_address: wallet,
-        metadata: { last_login_at: new Date().toISOString() },
-      },
-      { onConflict: "id" }
-    );
+    const { error } = await supabase
+      .from("users")
+      .upsert(payload, { onConflict: "id" });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 401 });
+  } catch (error: any) {
+    console.error("upsert-user error:", error);
+    const message =
+      typeof error?.message === "string"
+        ? error.message
+        : "Unable to verify Privy session";
+    const status = /unauthorized/i.test(message) ? 401 : 500;
+
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

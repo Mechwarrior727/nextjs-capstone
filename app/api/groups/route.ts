@@ -1,32 +1,34 @@
 // app/api/groups/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
 import { requirePrivyUser } from "@/lib/privy";
+import { getSupabaseAdmin } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const privy = await requirePrivyUser();
-  const body = await req.json();
-  const { name, description, isPrivate = true, allowStaking = false } = body;
+  try {
+    const user = await requirePrivyUser(req);
+    const body = await req.json();
 
-  // Create group + owner membership in one transaction via RPC or do it here with two queries:
-  const { data: group, error } = await supabaseAdmin
-    .from("groups")
-    .insert({
-      owner_id: privy.id,
-      name,
-      description,
-      is_private: !!isPrivate,
-      allow_staking: !!allowStaking,
-    })
-    .select()
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from("groups").insert({
+      owner_id: user.id,
+      name: body?.name ?? "Untitled Group",
+      created_at: new Date().toISOString(),
+    });
 
-  const { error: mErr } = await supabaseAdmin
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: privy.id, role: "admin" });
-  if (mErr) return NextResponse.json({ error: mErr.message }, { status: 400 });
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
+    }
 
-  return NextResponse.json({ group });
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    const message = err?.message || "Unknown error";
+    const status = /Unauthorized/i.test(message) ? 401 : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
+  }
 }

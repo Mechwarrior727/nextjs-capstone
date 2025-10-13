@@ -1,22 +1,35 @@
 // app/api/progress/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
 import { requirePrivyUser } from "@/lib/privy";
+import { getSupabaseAdmin } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const privy = await requirePrivyUser();
-  const { goalId, day, value, source = "manual" } = await req.json();
+  try {
+    const user = await requirePrivyUser(req);
+    const body = await req.json();
 
-  const { data, error } = await supabaseAdmin
-    .from("goal_progress")
-    .upsert(
-      { user_id: privy.id, goal_id: goalId, day, value, source },
-      { onConflict: "user_id,goal_id,day" }
-    )
-    .select()
-    .single();
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from("progress").insert({
+      user_id: user.id,
+      goal_id: body?.goal_id ?? null,
+      amount: body?.amount ?? 0,
+      created_at: new Date().toISOString(),
+    });
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ progress: data });
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    const message = err?.message || "Unknown error";
+    const status = /Unauthorized/i.test(message) ? 401 : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
+  }
 }
