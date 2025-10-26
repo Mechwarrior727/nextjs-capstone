@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PrivyProviders from "./PrivyProvider";
 import { ThemeProvider } from "@/components/theme-provider"
-import { ModeToggle } from "@/components/ModeToggle"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({
