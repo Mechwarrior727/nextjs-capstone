@@ -21,6 +21,7 @@ export default function Home() {
         authenticated={authenticated}
         login={login}
         logout={logout}
+        user={user}
         linkedWallets={linkedWallets}
       />
       <Dashboard

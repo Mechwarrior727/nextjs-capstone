@@ -1,5 +1,11 @@
- "use client";
+"use client";
 
+import { useState, useEffect } from "react";
+import { Users, TrendingUp, DollarSign, ChevronRight } from "lucide-react";
+import CreateGroupDialog from "@/components/GroupDialog";
+import { getUserGroups } from "@/lib/groups";
+import type { GroupMemberWithGroup } from "@/lib/supabase-types";
+import Link from "next/link";
 
 interface DashboardProps {
     ready: any;
@@ -17,192 +23,248 @@ interface DashboardProps {
 }
 
 export default function Dashboard({
-  ready,
-  authenticated,
-  displayName,
-  shortAddress,
-  googleTokens,
-  user,
-  fetchStepData,
-  reauthorize,
-  loading,
-  error,
-  setError,
-  fitData,
+    ready,
+    authenticated,
+    displayName,
+    shortAddress,
+    googleTokens,
+    user,
+    fetchStepData,
+    reauthorize,
+    loading,
+    error,
+    setError,
+    fitData,
 }: DashboardProps) {
-  return (
-    <div className="relative min-h-screen font-sans bg-white dark:bg-black text-black dark:text-white">
-          {/* Centerpiece text */}
-      <main className="flex flex-col items-center justify-center h-screen text-center px-4">
-        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-8">
-          Peer Health Tracking and Commitment
-        </h1>
-        {ready && authenticated && (
-          <>
-            {displayName ? (
-              <p className="mt-2 text-lg font-medium text-green-500 mb-6">
-                Welcome {displayName}!
-              </p>
-            ) : shortAddress ? (
-              <p className="mt-2 text-lg font-medium text-green-500 mb-6">
-                Welcome {shortAddress}!
-              </p>
-            ) : null}
+    const [groups, setGroups] = useState<GroupMemberWithGroup[]>([]);
+    const [loadingGroups, setLoadingGroups] = useState(true);
 
-            {/* Google Fit Integration */}
-            <div className="mb-6 space-y-4">
-              {/* Token Status */}
-              <div className="text-center">
-                {googleTokens ? (
-                  <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm">Google OAuth tokens available</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 text-yellow-600 dark:text-yellow-400">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-sm">Waiting for Google OAuth tokens...</span>
-                  </div>
-                )}
-              </div>
+    const fetchGroups = async () => {
+        if (!user?.id) return;
 
-              {/* Setup Instructions */}
-              {!googleTokens && process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 text-center max-w-md mx-auto p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-semibold mb-2">🔧 Setup Required:</p>
-                  <p className="mb-2">1. Add your PRIVY_APP_SECRET to .env.local</p>
-                  <p className="mb-2">2. Find it in Privy Dashboard → Configuration → App settings</p>
-                  <p>3. Login with Google to test Google Fit integration</p>
-                </div>
-              )}
+        setLoadingGroups(true);
+        const result = await getUserGroups(user.id);
 
-              {/* Debug Info */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-gray-500 text-center max-w-md mx-auto">
-                  <details>
-                    <summary className="cursor-pointer">Debug Info</summary>
-                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-left">
-                      <p>Authenticated: {authenticated ? 'Yes' : 'No'}</p>
-                      <p>Google Tokens: {googleTokens ? 'Available' : 'None'}</p>
-                      <p>User: {user ? 'Logged in' : 'Not logged in'}</p>
-                      <p>Google Account: {user?.linkedAccounts?.find((a: any) => a.type === 'google_oauth') ? 'Linked' : 'Not linked'}</p>
-                    </div>
-                  </details>
-                </div>
-              )}
+        if (result.success && result.data) {
+            setGroups(result.data);
+        } else {
+            setGroups([]);
+        }
+        setLoadingGroups(false);
+    };
 
-              <div className="flex gap-2">
-                <button
-                  onClick={fetchStepData}
-                  disabled={loading}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 py-2 px-6 text-white font-medium"
-                >
-                  {loading ? 'Loading Step Data...' : 'Get Step Data (Direct API)'}
-                </button>
+    useEffect(() => {
+        if (authenticated && user?.id) {
+            fetchGroups();
+        }
+    }, [authenticated, user?.id]);
 
-                {user?.linkedAccounts?.find((a: any) => a.type === 'google_oauth') && (
-                  <button
-                    onClick={() => reauthorize({ provider: 'google' })}
-                    className="rounded-full bg-green-600 hover:bg-green-700 py-2 px-6 text-white font-medium text-sm"
-                  >
-                    Refresh Google Auth
-                  </button>
-                )}
-              </div>
-
-              {!googleTokens && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  Login with Google to enable Google Fit integration
-                </p>
-              )}
+    if (!ready) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+                <div className="text-black dark:text-white text-xl">Loading...</div>
             </div>
+        );
+    }
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-100 dark:bg-red-900 rounded-lg text-red-700 dark:text-red-300 max-w-md">
-                <p className="font-semibold">Error:</p>
-                <p>{error}</p>
-                <div className="mt-3 flex gap-2">
-                  {error.includes('expired') || error.includes('reauthorize') || error.includes('permissions') ? (
-                    <button
-                      onClick={() => reauthorize({ provider: 'google' })}
-                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                    >
-                      Reauthorize Google
-                    </button>
-                  ) : null}
-                  <button
-                    onClick={() => {
-                      setError(null);
-                      fetchStepData();
-                    }}
-                    className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {fitData && (
-              <div className="w-full max-w-2xl">
-                <h2 className="text-xl font-semibold mb-4">
-                  Your Last 5 Days Step Count
-                  {fitData.note && (
-                    <span className="text-sm text-yellow-600 dark:text-yellow-400 ml-2">
-                      (Demo Data - Setup Required)
-                    </span>
-                  )}
-                  {!fitData.note && (
-                    <span className="text-sm text-green-600 dark:text-green-400 ml-2">
-                      (Live Google Fit Data)
-                    </span>
-                  )}
-                </h2>
-
-                {/* Simple bar chart visualization */}
-                <div className="mb-6 space-y-2">
-                  {fitData.days.map((day: any, index: any) => {
-                    const maxSteps = Math.max(...fitData.days.map((d: any) => d.steps));
-                    const barWidth = maxSteps > 0 ? (day.steps / maxSteps) * 100 : 0;
-
-                    return (
-                      <div key={day.date} className="flex items-center gap-4">
-                        <span className="text-sm font-mono w-20">{day.date}</span>
-                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-6 relative">
-                          <div
-                            className="bg-green-500 h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
-                            style={{ width: `${barWidth}%` }}
-                          >
-                            <span className="text-white text-xs font-semibold">
-                              {day.steps}
-                            </span>
-                          </div>
+    if (!authenticated) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-black px-4">
+                <div className="text-center max-w-2xl">
+                    <h1 className="text-5xl font-bold text-black dark:text-white mb-4">CleverNameAboutPeerPressure</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                        Compete with friends. Achieve your goals. Steal their money.
+                    </p>
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800">
+                        <h2 className="text-2xl font-bold text-black dark:text-white mb-4">How it works</h2>
+                        <div className="space-y-4 text-left text-gray-700 dark:text-gray-300">
+                            <div className="flex gap-3">
+                                <span className="text-2xl">1️⃣</span>
+                                <p>Create or join a group with friends</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-2xl">2️⃣</span>
+                                <p>Track progress towards a common goal</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-2xl">3️⃣</span>
+                                <p>???</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-2xl">4️⃣</span>
+                                <p>Profit</p>
+                            </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-white dark:bg-black">
+            <div className="max-w-6xl mx-auto px-6 py-8">
+                {/* Welcome Section */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-black dark:text-white mb-2">
+                        Welcome back, {displayName || shortAddress || 'User'}!
+                    </h1>
                 </div>
 
-                {/* Total steps */}
-                <div className="text-center p-4 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <p className="text-lg font-semibold text-green-700 dark:text-green-300">
-                    Total Steps (5 days): {fitData.total.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </main>
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Users className="text-violet-600 dark:text-violet-400" size={24} />
+                            <span className="text-gray-600 dark:text-gray-400 text-sm">Active Groups</span>
+                        </div>
+                        <p className="text-3xl font-bold text-black dark:text-white">{groups.length}</p>
+                    </div>
 
-      {/* Delete account button bottom-right */}
-      <footer className="absolute bottom-6 right-6">
-        <button
-          className="rounded-full bg-red-600 hover:bg-red-700 py-2 px-4 text-white"
-        >
-          Delete account
-        </button>
-      </footer>
-    </div>
-  );
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-3 mb-2">
+                            <DollarSign className="text-green-600 dark:text-green-400" size={24} />
+                            <span className="text-gray-600 dark:text-gray-400 text-sm">Total at Stake</span>
+                        </div>
+                        <p className="text-3xl font-bold text-black dark:text-white">$0</p>
+                    </div>
+
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-3 mb-2">
+                            <TrendingUp className="text-yellow-600 dark:text-yellow-400" size={24} />
+                            <span className="text-gray-600 dark:text-gray-400 text-sm">Best Streak</span>
+                        </div>
+                        <p className="text-3xl font-bold text-black dark:text-white">0 days</p>
+                    </div>
+                </div>
+
+                {/* Groups Section */}
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-black dark:text-white">Your Groups</h2>
+                    <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                </div>
+
+                {/* Loading State */}
+                {loadingGroups ? (
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
+                        <p className="text-gray-600 dark:text-gray-400">Loading your groups...</p>
+                    </div>
+                ) : groups.length === 0 ? (
+                    /* Empty State */
+                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
+                        <h3 className="text-2xl font-bold text-black dark:text-white mb-2">No groups yet</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first group and start competing with friends!</p>
+                        <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                    </div>
+                ) : (
+                    /* Groups List */
+                    <div className="space-y-4">
+                        {groups.map((membership) => (
+                            <Link
+                                key={membership.group_id}
+                                href={`/groups/${membership.group_id}`}
+                                className="block bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 hover:border-violet-500 dark:hover:border-violet-500 transition-colors"
+                            >
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="text-xl font-bold text-black dark:text-white">
+                                                {membership.groups.name}
+                                            </h3>
+                                            {membership.role === 'owner' && (
+                                                <span className="text-xs bg-violet-600 text-white px-2 py-1 rounded-full">
+                                                    Owner
+                                                </span>
+                                            )}
+                                        </div>
+                                        {membership.groups.description && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                {membership.groups.description}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                                            Joined {new Date(membership.joined_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="text-gray-400 dark:text-gray-600 flex-shrink-0" size={24} />
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+
+                {/* Development Tools - Only show in dev mode */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-8 bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
+                        <details>
+                            <summary className="text-black dark:text-white font-semibold cursor-pointer mb-4">
+                                Developer Tools
+                            </summary>
+                            <div className="space-y-4">
+                                {/* Google Fit Integration Status */}
+                                <div>
+                                    <h4 className="text-black dark:text-white font-semibold mb-2">Google Fit Status</h4>
+                                    {googleTokens ? (
+                                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span>OAuth tokens available</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 text-sm">
+                                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                            <span>Waiting for OAuth tokens...</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 flex-wrap">
+                                    <button
+                                        onClick={fetchStepData}
+                                        disabled={loading}
+                                        className="rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 py-2 px-4 text-white text-sm font-medium"
+                                    >
+                                        {loading ? 'Loading...' : 'Test Fetch Step Data'}
+                                    </button>
+
+                                    {user?.linkedAccounts?.find((a: any) => a.type === 'google_oauth') && (
+                                        <button
+                                            onClick={() => reauthorize({ provider: 'google' })}
+                                            className="rounded-lg bg-green-600 hover:bg-green-700 py-2 px-4 text-white text-sm font-medium"
+                                        >
+                                            Refresh Google Auth
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Error Display */}
+                                {error && (
+                                    <div className="p-4 bg-red-100 dark:bg-red-900/50 rounded-lg text-red-700 dark:text-red-200 text-sm">
+                                        <p className="font-semibold">Error:</p>
+                                        <p>{error}</p>
+                                    </div>
+                                )}
+
+                                {/* Fit Data Display */}
+                                {fitData && (
+                                    <div className="p-4 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                                        <p className="text-green-700 dark:text-green-200 text-sm font-semibold mb-2">
+                                            Last 5 Days Step Count: {fitData.total.toLocaleString()} total steps
+                                        </p>
+                                        <div className="space-y-1">
+                                            {fitData.days.map((day: any) => (
+                                                <div key={day.date} className="text-green-600 dark:text-green-300 text-xs">
+                                                    {day.date}: {day.steps} steps
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </details>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
