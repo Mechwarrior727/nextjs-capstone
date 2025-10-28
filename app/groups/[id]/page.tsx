@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Users, Settings, Target } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Target, UserPlus } from 'lucide-react';
 import { getGroupById } from '@/lib/groups';
 import GroupSettings from '@/components/GroupSettings';
+import InviteCodeDisplay from '@/components/InviteCodeDisplay';
+import GroupMembers from '@/components/GroupMembers';
 import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
 
-type Tab = 'overview' | 'settings';
+type Tab = 'overview' | 'invite' | 'settings';
 
 export default function GroupDetailPage() {
     const params = useParams();
@@ -126,6 +128,20 @@ export default function GroupDetailPage() {
                         </button>
                         {isOwner && (
                             <button
+                                onClick={() => setActiveTab('invite')}
+                                className={`pb-4 px-2 border-b-2 transition-colors ${activeTab === 'invite'
+                                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
+                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <UserPlus size={20} />
+                                    Invite
+                                </div>
+                            </button>
+                        )}
+                        {isOwner && (
+                            <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`pb-4 px-2 border-b-2 transition-colors ${activeTab === 'settings'
                                     ? 'border-violet-600 text-violet-600 dark:text-violet-400'
@@ -145,38 +161,7 @@ export default function GroupDetailPage() {
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
                         {/* Members Section */}
-                        <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
-                            <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center gap-2">
-                                <Users size={24} />
-                                Members
-                            </h2>
-                            <div className="space-y-3">
-                                {group.group_members?.length > 0 ? (
-                                    group.group_members.map((member: any) => (
-                                        <div
-                                            key={member.user_id}
-                                            className="flex items-center justify-between p-3 bg-white dark:bg-black rounded-lg"
-                                        >
-                                            <div>
-                                                <p className="text-black dark:text-white font-medium">
-                                                    {member.user_id}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-500">
-                                                    Joined {new Date(member.joined_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <span className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
-                                                {member.role}
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-gray-600 dark:text-gray-400 text-center py-4">
-                                        No members yet
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+                        <GroupMembers members={group.group_members || []} />
 
                         {/* Goals Section - Placeholder */}
                         <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
@@ -189,6 +174,10 @@ export default function GroupDetailPage() {
                             </p>
                         </div>
                     </div>
+                )}
+
+                {activeTab === 'invite' && isOwner && (
+                    <InviteCodeDisplay groupId={groupId} userId={user?.id || ''} />
                 )}
 
                 {activeTab === 'settings' && isOwner && (

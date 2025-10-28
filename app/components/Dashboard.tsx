@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Users, TrendingUp, DollarSign, ChevronRight } from "lucide-react";
 import CreateGroupDialog from "@/components/GroupDialog";
+import JoinGroupDialog from "@/components/JoinGroupDialog";
 import { getUserGroups } from "@/lib/groups";
 import type { GroupMemberWithGroup } from "@/lib/supabase-types";
 import Link from "next/link";
@@ -138,10 +139,13 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                {/* Groups Section */}
+                {/* Groups Section - UPDATED */}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-black dark:text-white">Your Groups</h2>
-                    <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                    <div className="flex gap-2">
+                        <JoinGroupDialog userId={user?.id} onGroupJoined={fetchGroups} />
+                        <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                    </div>
                 </div>
 
                 {/* Loading State */}
@@ -150,11 +154,14 @@ export default function Dashboard({
                         <p className="text-gray-600 dark:text-gray-400">Loading your groups...</p>
                     </div>
                 ) : groups.length === 0 ? (
-                    /* Empty State */
+                    /* Empty State - UPDATED */
                     <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
                         <h3 className="text-2xl font-bold text-black dark:text-white mb-2">No groups yet</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first group and start competing with friends!</p>
-                        <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first group or join one with an invite code!</p>
+                        <div className="flex gap-2 justify-center">
+                            <JoinGroupDialog userId={user?.id} onGroupJoined={fetchGroups} />
+                            <CreateGroupDialog userId={user?.id} onGroupCreated={fetchGroups} />
+                        </div>
                     </div>
                 ) : (
                     /* Groups List */

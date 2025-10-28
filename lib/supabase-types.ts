@@ -14,14 +14,15 @@ export type User = {
 };
 
 export type Group = {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-  name: string;
-  description: string | null;
-  is_private: boolean;
-  allow_staking: boolean;
+    id: string;
+    created_at: string;
+    updated_at: string;
+    owner_id: string;
+    name: string;
+    description: string | null;
+    is_private: boolean;
+    allow_staking: boolean;
+    invite_code: string | null;
 };
 
 export type GroupMember = {

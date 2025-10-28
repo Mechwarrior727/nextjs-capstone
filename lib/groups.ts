@@ -91,7 +91,13 @@ export async function getGroupById(groupId: string) {
           group_members (
             user_id,
             role,
-            joined_at
+            joined_at,
+            users (
+              id,
+              display_name,
+              email,
+              google_id
+            )
           )
         `)
                 .eq('id', groupId)
