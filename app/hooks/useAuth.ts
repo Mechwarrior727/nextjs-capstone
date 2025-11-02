@@ -188,7 +188,7 @@ export function useAuth() {
             const now = new Date();
             const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            start.setDate(start.getDate() - 4);
+            start.setDate(start.getDate() - 29);
             start.setHours(0, 0, 0, 0);
 
             const startTimeMillis = start.getTime();
@@ -234,6 +234,18 @@ export function useAuth() {
                 const total = days.reduce((s: number, d: any) => s + d.steps, 0);
 
                 setFitData({ days, total });
+				await fetch("/api/db/upsert-health", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						data: days.map((d: any) => ({
+							date: d.date,
+							steps: d.steps,
+							calories: d.calories ?? 0, // ✅ include calories
+						})),
+					}),
+				});
+
                 return;
             } else {
                 const errorText = await directResponse.text();
