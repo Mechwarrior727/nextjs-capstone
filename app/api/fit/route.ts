@@ -29,21 +29,15 @@ interface GoogleFitBucket {
 }
 
 // --- Helper: calculate date range ---
-function getLast30DaysMillis() {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  start.setDate(start.getDate() - 29);
-  start.setHours(0, 0, 0, 0);
-  return {
-    startTimeMillis: start.getTime(),
-    endTimeMillis: end.getTime(),
-  };
-}
+// This function is no longer needed as the client will provide the date range
+// function getLast30DaysMillis() { ... }
 
 // --- Helper: fetch data from Google Fit ---
-async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
-  const { startTimeMillis, endTimeMillis } = getLast30DaysMillis();
+async function fetchStepData(
+  accessToken: string,
+  startTimeMillis: number,
+  endTimeMillis: number
+): Promise<GoogleFitData> {
 
   console.log("📊 Fetching Google Fit data for date range:", {
     startTimeMillis,
@@ -132,13 +126,17 @@ async function fetchStepData(accessToken: string): Promise<GoogleFitData> {
 // --- Main API handler ---
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken } = await request.json();
-    if (!accessToken) {
-      return NextResponse.json({ error: "Access token is required" }, { status: 400 });
+    const { accessToken, startTimeMillis, endTimeMillis } = await request.json();
+    if (!accessToken || !startTimeMillis || !endTimeMillis) {
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
     }
 
-    console.log("🚀 [API] Received Google OAuth token, calling Google Fit API");
-    const { days, totalSteps, totalCalories } = await fetchStepData(accessToken);
+    console.log("🚀 [API] Received Google OAuth token and time range, calling Google Fit API");
+    const { days, totalSteps, totalCalories } = await fetchStepData(
+      accessToken,
+      startTimeMillis,
+      endTimeMillis
+    );
 
     // 2️⃣ Verify Privy session
     const { user } = await requirePrivySession(request);
@@ -170,8 +168,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         daysCount: days.length,
         dateRange: {
-          start: new Date(getLast30DaysMillis().startTimeMillis).toISOString(),
-          end: new Date(getLast30DaysMillis().endTimeMillis).toISOString(),
+          start: new Date(startTimeMillis).toISOString(),
+          end: new Date(endTimeMillis).toISOString(),
         },
         syncedToSupabase: true,
       },
