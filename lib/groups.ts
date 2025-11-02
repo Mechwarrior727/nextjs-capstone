@@ -166,3 +166,40 @@ export async function updateGroup(
         return { success: false, error: 'An unexpected error occurred' };
     }
 }
+
+export async function deleteGroup(groupId: string, userId: string) {
+    try {
+        return await withAdmin(async (supabase) => {
+            // First check if user is the owner
+            const { data: group, error: checkError } = await supabase
+                .from('groups')
+                .select('owner_id')
+                .eq('id', groupId)
+                .single();
+
+            if (checkError || !group) {
+                return { success: false, error: 'Group not found' };
+            }
+
+            if (group.owner_id !== userId) {
+                return { success: false, error: 'Only the owner can delete the group' };
+            }
+
+            // Delete the group (cascading deletes should handle related records)
+            const { error: deleteError } = await supabase
+                .from('groups')
+                .delete()
+                .eq('id', groupId);
+
+            if (deleteError) {
+                console.error('Error deleting group:', deleteError);
+                return { success: false, error: deleteError.message };
+            }
+
+            return { success: true };
+        });
+    } catch (error) {
+        console.error('Unexpected error:', error);
+        return { success: false, error: 'An unexpected error occurred' };
+    }
+}

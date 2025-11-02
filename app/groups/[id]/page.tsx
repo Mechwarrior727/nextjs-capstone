@@ -44,6 +44,17 @@ export default function GroupDetailPage() {
         setLoading(false);
     };
 
+    // Helper function to get display name for a member
+    const getMemberDisplayName = (member: any) => {
+        if (member.users?.display_name) {
+            return member.users.display_name;
+        }
+        if (member.users?.email) {
+            return member.users.email;
+        }
+        return member.user_id;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
