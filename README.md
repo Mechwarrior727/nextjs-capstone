@@ -1,3 +1,5 @@
+npm run dev
+
 # Next.js Google Fit Integration
 
 A Next.js application with Google Fit API integration using Privy authentication for secure OAuth token handling.

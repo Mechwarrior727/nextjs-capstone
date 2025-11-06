@@ -259,8 +259,8 @@ export default function Dashboard({
                                             Last 5 Days Step Count: {fitData.total.toLocaleString()} total steps
                                         </p>
                                         <div className="space-y-1">
-                                            {fitData.days.map((day: any) => (
-                                                <div key={day.date} className="text-green-600 dark:text-green-300 text-xs">
+                                            {fitData.days.map((day: any, index: number) => (
+                                                <div key={`${day.date}-${index}`} className="text-green-600 dark:text-green-300 text-xs">
                                                     {day.date}: {day.steps} steps
                                                 </div>
                                             ))}
