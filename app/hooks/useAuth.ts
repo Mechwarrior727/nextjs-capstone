@@ -124,177 +124,71 @@ export function useAuth() {
         ? `${displayWallet.address.slice(0, 6)}...${displayWallet.address.slice(-4)}`
         : null;
 
-    const fetchStepData = async () => {
-        if (!authenticated || !user) return;
+    // --- inside fetchStepData() ---
+	const fetchStepData = async () => {
+		if (!authenticated || !user) return;
 
-        setLoading(true);
-        setError(null);
+		setLoading(true);
+		setError(null);
 
-        try {
-            // Try multiple ways to get the Google OAuth token
+		try {
+			// Try multiple ways to get the Google OAuth token
+			let accessToken = googleTokens?.accessToken;
+			if (!accessToken && user) {
+				const googleAccount = user.linkedAccounts?.find(
+					(a) => a.type === "google_oauth"
+				) as any;
+				accessToken =
+					googleAccount?.oauth_tokens?.access_token ||
+					googleAccount?.oauth?.accessToken ||
+					googleAccount?.accessToken;
+			}
 
-            // Method 1: From useOAuthTokens hook
-            let accessToken = googleTokens?.accessToken;
+			if (!accessToken) {
+				setError("Google OAuth tokens not found. Please reauthorize.");
+				setLoading(false);
+				return;
+			}
 
-            // Method 2: From user object (try different property names)
-            if (!accessToken && user) {
-                const googleAccount = user.linkedAccounts?.find(account =>
-                    account.type === 'google_oauth'
-                ) as any;
+			// Time window (same as before)
+			const now = new Date();
+			const end = new Date();
+			const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			start.setDate(start.getDate() - 29);
+			start.setHours(0, 0, 0, 0);
 
-                if (googleAccount) {
-                    // Try different possible property names for OAuth tokens
-                    accessToken = googleAccount.oauth_tokens?.access_token ||
-                        googleAccount.oauth?.accessToken ||
-                        googleAccount.accessToken ||
-                        googleAccount.token;
+			const startTimeMillis = start.getTime();
+			const endTimeMillis = end.getTime();
 
-                    if (accessToken) {
-                        console.log('🔑 Found OAuth token in user object:', accessToken ? 'present' : 'missing');
-                    }
-                }
-            }
+			console.log("📡 Calling backend /api/fit with Google token...");
+			const response = await fetch("/api/fit", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ accessToken, startTimeMillis, endTimeMillis }),
+			});
 
-            // Method 3: Check if we have any OAuth tokens in the user object
-            if (!accessToken && user) {
-                console.log('🔍 Checking all user object properties for tokens...');
-                const checkObject = (obj: any, path: string = '') => {
-                    for (const [key, value] of Object.entries(obj)) {
-                        const currentPath = path ? `${path}.${key}` : key;
-                        if (typeof value === 'string' && value.length > 50 && !path.includes('id') && !path.includes('subject')) {
-                            console.log(`🔍 Possible token found at ${currentPath}:`, value.substring(0, 20) + '...');
-                        }
-                        if (typeof value === 'object' && value !== null) {
-                            checkObject(value, currentPath);
-                        }
-                    }
-                };
-                checkObject(user);
-            }
+			const result = await response.json();
 
-            if (!accessToken) {
-                setError('Google OAuth tokens not found. The useOAuthTokens hook may not be capturing tokens properly. Try clicking "Refresh Google Auth" or re-login with Google.');
-                setLoading(false);
-                return;
-            }
+			if (!response.ok) {
+				console.error("❌ /api/fit error:", result.error);
+				setError(result.error || "Backend fetch failed");
+				setLoading(false);
+				return;
+			}
 
-            console.log('🔑 Using Google OAuth token:', accessToken ? 'present' : 'missing');
+			console.log("✅ Backend /api/fit success:", result);
+			setFitData({
+				days: result.data.days,
+				total: result.data.totalSteps,
+			});
+		} catch (err: any) {
+			console.error("❌ fetchStepData error:", err);
+			setError(err.message || "Failed to fetch data");
+		} finally {
+			setLoading(false);
+		}
+	};
 
-            // Try direct Google Fit API call from frontend
-            console.log('🚀 Attempting direct Google Fit API call from frontend...');
-
-            // Aligned the time window to midnight to prevent splitting calendar days
-            // which caused inaccurate daily totals. Using local timezone for accuracy.
-            const now = new Date();
-            const end = new Date(); // Use current time to get latest data for today
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            start.setDate(start.getDate() - 29);
-            start.setHours(0, 0, 0, 0);
-
-            const startTimeMillis = start.getTime();
-            const endTimeMillis = end.getTime();
-
-            const directResponse = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
-                    bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 }, // daily buckets
-                    startTimeMillis,
-                    endTimeMillis,
-                }),
-            });
-
-            console.log('📊 Direct API response status:', directResponse.status);
-
-            if (directResponse.ok) {
-                console.log('✅ Direct Google Fit API call successful!');
-                const directData = await directResponse.json();
-                console.log('📊 Direct API response data:', directData);
-
-                // Process the data
-                const days = directData.bucket?.map((b: any) => {
-                    const steps = b.dataset?.[0]?.point?.reduce((sum: number, p: any) => {
-                        const v = p.value?.[0];
-                        const n = typeof v?.intVal === "number" ? v.intVal : 0;
-                        return sum + (n || 0);
-                    }, 0) || 0;
-
-                    const d = new Date(Number(b.startTimeMillis));
-                    // Using local date parts to avoid timezone conversion errors from .toISOString()
-                    const yyyy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, "0");
-                    const dd = String(d.getDate()).padStart(2, "0");
-                    return { date: `${yyyy}-${mm}-${dd}`, steps };
-                }) || [];
-
-                const total = days.reduce((s: number, d: any) => s + d.steps, 0);
-
-                setFitData({ days, total });
-				await fetch("/api/db/upsert-health", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						data: days.map((d: any) => ({
-							date: d.date,
-							steps: d.steps,
-							calories: d.calories ?? 0, // ✅ include calories
-						})),
-					}),
-				});
-
-                return;
-            } else {
-                const errorText = await directResponse.text();
-                console.error('❌ Direct Google Fit API failed:', errorText);
-
-                // Fallback to API route
-                console.log('🔄 Falling back to API route...');
-                const response = await fetch('/api/fit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        accessToken,
-                        startTimeMillis,
-                        endTimeMillis,
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    if (result.error?.includes('token') || result.error?.includes('auth')) {
-                        setError('Token expired. Please click "Refresh Google Auth" to reauthorize.');
-                        return;
-                    }
-                    throw new Error(result.error || 'Failed to fetch step data');
-                }
-
-                setFitData(result.data);
-            }
-
-        } catch (err: any) {
-            console.error('Error fetching step data:', err);
-
-            // Handle different types of errors
-            if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-                setError('Google OAuth token expired. Please click "Refresh Google Auth" to reauthorize.');
-            } else if (err.message?.includes('403') || err.message?.includes('Forbidden')) {
-                setError('Google Fit API access denied. Please ensure you have granted fitness permissions.');
-            } else if (err.message?.includes('CORS')) {
-                setError('CORS error. The direct API approach may not work due to browser restrictions.');
-            } else {
-                setError(err.message || 'Failed to fetch step data');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return {
         fitData,
