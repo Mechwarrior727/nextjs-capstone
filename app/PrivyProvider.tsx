@@ -62,7 +62,20 @@ export default function PrivyProviders({
   }
 
   return (
-    <PrivyProvider appId={PRIVY_APP_ID} config={{ loginMethods: ['google'] }}>
+    <PrivyProvider 
+      appId={PRIVY_APP_ID} 
+      config={{
+        loginMethods: ['google'],
+        // Enable Solana embedded wallets for staking transactions
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets',
+        },
+        solana: {
+          enabled: true,
+          rpcUrl: 'https://api.devnet.solana.com',
+        },
+      }}
+    >
       <SyncUser />
       {children}
     </PrivyProvider>

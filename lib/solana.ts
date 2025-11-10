@@ -6,18 +6,31 @@ import {
   TransactionInstruction,
   clusterApiUrl,
   LAMPORTS_PER_SOL,
+  Keypair,
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 
 // DevNet configuration
-export const DEVNET_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl("devnet");
+export const DEVNET_RPC = "https://api.devnet.solana.com";
 export const DEVNET_USDC_MINT = "EPjFWaJPuPj1j4q7W4R8Pg8XKk1mVjCTWC5qjLxvPeq";
 export const PROGRAM_ID = new PublicKey("9CD9sjrZXwLjBRy7v6MacPrcyVHntxd5EPY2a6BvMaQG");
 
 export function getConnection(): Connection {
   return new Connection(DEVNET_RPC, "confirmed");
+}
+
+// Helper to get associated token account address (without creating it)
+export async function getOrCreateAssociatedTokenAccount(
+  connection: Connection,
+  mint: PublicKey,
+  owner: PublicKey
+): Promise<PublicKey> {
+  // For now, assume the ATA exists at the standard derived address
+  // In production, you'd check if it exists and create if needed
+  const { getAssociatedTokenAddressSync } = await import("@solana/spl-token");
+  return getAssociatedTokenAddressSync(mint, owner);
 }
 
 export interface GoalParams {
