@@ -117,7 +117,7 @@ export default function EscrowTestPage() {
               <div className="grid grid-cols-3 gap-4">
                 <dt className="font-medium text-gray-700">Program ID:</dt>
                 <dd className="col-span-2 break-all font-mono text-gray-600">
-                  9CD9sjrZXwLjBRy7v6MacPrcyVHntxd5EPY2a6BvMaQG
+                  Fbyu5W1jyoFnTvDrbwZvo8GpLXCc83HFt1RPtjVNkF1b
                 </dd>
               </div>
               <div className="grid grid-cols-3 gap-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useWallets } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth/solana";
 import { PublicKey } from "@solana/web3.js";
 import {
   buildOpenStakeTx,
@@ -36,7 +36,7 @@ export function StakeDeposit({ goalHash, groupVaultAddress }: StakeDepositProps)
     try {
       setIsLoading(true);
 
-      const solanaWallet = wallets.find((w) => w.chainType === "solana");
+      const solanaWallet = wallets[0];
       if (!solanaWallet?.address) {
         throw new Error("No Solana wallet connected");
       }

@@ -1,18 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { PublicKey, Transaction, SystemProgram, Connection } from "@solana/web3.js";
+import { usePrivy } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth/solana";
+import {
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  SendTransactionError,
+} from "@solana/web3.js";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import {
   deriveGoalPda,
-  deriveStakePda,
-  DEVNET_RPC,
   DEVNET_USDC_MINT,
-  PROGRAM_ID,
   getConnection,
+  buildInitGoalTx,
   buildOpenStakeTx,
+  buildDepositStakeTx,
+  ensureAssociatedTokenAccount,
 } from "@/lib/solana";
 import { AlertCircle, Loader2, CheckCircle, XCircle } from "lucide-react";
 
@@ -45,11 +51,28 @@ export function EscrowTestButton() {
   const [stakeAmount, setStakeAmount] = useState("1"); // USDC
   const [status, setStatus] = useState<TestStatus>({ step: "idle", message: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [airdropStatus, setAirdropStatus] = useState<"idle" | "in_progress" | "success" | "error">("idle");
 
-  // Get the Solana wallet
-  const solanaWallet = wallets.find(
-    (w) => w.chainType === "solana" || w.walletClientType === "privy_embedded_solana"
-  );
+  // Get the first Solana wallet (from Privy's Solana hooks)
+  const solanaWallet = wallets[0];
+
+  const handleAirdrop = async () => {
+    if (!solanaWallet?.address) {
+      alert("Solana wallet not found. Please log in again.");
+      return;
+    }
+    setAirdropStatus("in_progress");
+    try {
+      const connection = getConnection();
+      const staker = new PublicKey(solanaWallet.address);
+      const signature = await connection.requestAirdrop(staker, 1 * 1e9); // 1 SOL
+      await connection.confirmTransaction(signature, "confirmed");
+      setAirdropStatus("success");
+    } catch (error) {
+      console.error("Airdrop failed:", error);
+      setAirdropStatus("error");
+    }
+  };
 
   const handleTestStake = async () => {
     try {
@@ -63,47 +86,118 @@ export function EscrowTestButton() {
       }
 
       if (!solanaWallet?.address) {
+        console.error("Wallet not found. Available wallets:", wallets);
         setStatus({
           step: "error",
           message: "Solana wallet not found",
-          error: "Privy Solana wallet not initialized. Check your configuration.",
+          error: "Privy Solana wallet not initialized. Try logging out and logging back in.",
         });
         return;
       }
 
       setIsLoading(true);
-      const staker = new PublicKey(solanaWallet.address);
       const connection = getConnection();
+      const staker = new PublicKey(solanaWallet.address);
+      const mint = new PublicKey(DEVNET_USDC_MINT);
 
-      // Step 1: Validate inputs
+      const executeTransaction = async (tx: Transaction, label: string) => {
+        setStatus({
+          step: "signing",
+          message: `${label}: requesting signature...`,
+        });
+
+        const serializedTx = tx.serialize({ requireAllSignatures: false });
+        const { signedTransaction } = await solanaWallet.signTransaction({
+          transaction: serializedTx,
+          chain: "solana:devnet",
+        });
+
+        setStatus({
+          step: "broadcasting",
+          message: `${label}: sending to devnet...`,
+        });
+
+        const signature = await connection.sendRawTransaction(
+          new Uint8Array(signedTransaction)
+        );
+
+        setStatus({
+          step: "confirming",
+          message: `${label}: waiting for confirmation...`,
+          signature,
+        });
+
+        const confirmation = await connection.confirmTransaction(
+          signature,
+          "confirmed"
+        );
+
+        if (confirmation.value.err) {
+          throw new Error(`Transaction failed: ${confirmation.value.err}`);
+        }
+
+        return signature;
+      };
+
       setStatus({
         step: "building",
-        message: "Validating inputs and building transaction...",
+        message: "Validating inputs and checking goal...",
       });
 
-      // Ensure goal hash is 32 bytes (64 hex chars)
       let goalHashBuffer: Buffer;
       if (goalHash.length === 64 && /^[0-9a-f]{64}$/i.test(goalHash)) {
         goalHashBuffer = Buffer.from(goalHash, "hex");
       } else {
-        // Create a deterministic hash from the input
         const crypto = await import("crypto");
         goalHashBuffer = crypto.createHash("sha256").update(goalHash).digest();
       }
 
-      const amount = Math.floor(parseFloat(stakeAmount) * 1_000_000); // Convert to raw units
+      const amount = Math.floor(parseFloat(stakeAmount) * 1_000_000);
 
       if (amount <= 0) {
         throw new Error("Stake amount must be greater than 0");
       }
 
-      // Step 2: Build transaction
+      const [goalPda] = deriveGoalPda(goalHashBuffer);
+      const { address: groupVaultAta, instruction: createGroupVaultIx } =
+        await ensureAssociatedTokenAccount(connection, staker, mint, staker);
+      const goalAccount = await connection.getAccountInfo(goalPda);
+
+      if (!goalAccount) {
+        setStatus({
+          step: "building",
+          message: "Goal not found. Initializing goal on devnet...",
+        });
+
+        const now = Math.floor(Date.now() / 1000);
+        const startsOn = now + 60;
+        const endsOn = startsOn + 3600;
+
+        const initTx = await buildInitGoalTx(
+          {
+            goalHash: goalHashBuffer,
+            startsOn,
+            endsOn,
+            authority: staker,
+            groupVault: groupVaultAta,
+            tokenMint: mint,
+          },
+          staker
+        );
+
+        if (createGroupVaultIx) {
+          initTx.instructions = [createGroupVaultIx, ...initTx.instructions];
+        }
+
+        await executeTransaction(initTx, "Goal init");
+      }
+
       setStatus({
         step: "building",
-        message: `Building transaction for ${stakeAmount} USDC...`,
+        message: `Building open_stake for ${stakeAmount} USDC...`,
       });
 
-      const tx = await buildOpenStakeTx(
+      const openTx = await buildOpenStakeTx(
         {
           goalHash: goalHashBuffer,
           staker,
@@ -112,76 +206,60 @@ export function EscrowTestButton() {
         staker
       );
 
-      // Step 3: Sign with Privy
-      setStatus({
-        step: "signing",
-        message: "Requesting signature from Privy wallet...",
-      });
-
-      // Try to import and use Privy's signTransaction hook
-      // This requires @privy-io/react-auth to have Solana support enabled
-      let signedTx: Transaction;
-      
-      try {
-        // Attempt to use Privy's Solana signing
-        // Note: This requires Privy Solana module to be available
-        const { useSignTransaction } = await import("@privy-io/react-auth/solana");
-        console.warn(
-          "Note: useSignTransaction import may fail if Privy Solana not configured. " +
-          "Falling back to direct signing."
-        );
-        
-        // If Privy Solana is available, we'd use it here
-        signedTx = tx;
-      } catch (_e) {
-        // Fallback: Sign directly (for testing)
-        // In production, ensure Privy Solana is properly configured
-        console.log("Privy Solana signing not available, using fallback");
-        signedTx = tx;
-      }
-
-      // Step 4: Broadcast
-      setStatus({
-        step: "broadcasting",
-        message: "Broadcasting transaction to devnet...",
-      });
-
-      // Note: In production with Privy Solana support, you would:
-      // 1. Encode the transaction to Uint8Array
-      // 2. Call useSignTransaction with encoded transaction
-      // 3. Get back signed transaction (Uint8Array)
-      // 4. Use connection.sendRawTransaction with the signed bytes
-      
-      const signature = await connection.sendTransaction(signedTx, []);
+      await executeTransaction(openTx, "Open stake");
 
       setStatus({
-        step: "confirming",
-        message: "Waiting for confirmation...",
-        signature,
+        step: "building",
+        message: "Preparing token accounts for deposit...",
       });
 
-      // Step 5: Confirm
-      const confirmation = await connection.confirmTransaction(
-        signature,
-        "confirmed"
+      const { address: stakerAta, instruction: createStakerAtaIx } =
+        await ensureAssociatedTokenAccount(connection, staker, mint, staker);
+      const { address: goalVaultAta, instruction: createGoalVaultIx } =
+        await ensureAssociatedTokenAccount(connection, staker, mint, goalPda, true);
+
+      const depositTx = await buildDepositStakeTx(
+        {
+          goalHash: goalHashBuffer,
+          staker,
+          amount,
+        },
+        stakerAta,
+        goalVaultAta,
+        staker
       );
 
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      const setupInstructions = [createStakerAtaIx, createGoalVaultIx].filter(
+        (ix): ix is TransactionInstruction => Boolean(ix)
+      );
+      if (setupInstructions.length > 0) {
+        depositTx.instructions = [...setupInstructions, ...depositTx.instructions];
       }
+
+      const depositSignature = await executeTransaction(depositTx, "Deposit stake");
 
       setStatus({
         step: "success",
-        message: `✅ Stake opened! Signature: ${signature.slice(0, 8)}...`,
-        signature,
+        message: `✅ Stake deposited! Signature: ${depositSignature.slice(0, 8)}...`,
+        signature: depositSignature,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
+      let logs: string[] | undefined;
+
+      if (error instanceof SendTransactionError) {
+        try {
+          logs = await error.getLogs(getConnection());
+        } catch (logError) {
+          console.warn("Failed to fetch logs:", logError);
+        }
+      }
+
       setStatus({
         step: "error",
         message: `❌ Failed: ${errorMessage}`,
-        error: errorMessage,
+        error: logs ? `${errorMessage}\nLogs: ${logs.join(" | ")}` : errorMessage,
       });
       console.error("Stake test error:", error);
     } finally {
@@ -320,9 +398,26 @@ export function EscrowTestButton() {
               </a>{" "}
               (choose devnet)
             </li>
-            <li>Get SOL: Use Solana CLI or online faucet</li>
+            <li>
+              Get SOL: Use Solana CLI, an online faucet, or the button below.
+            </li>
             <li>Send to your embedded wallet address below</li>
           </ol>
+          <Button
+            onClick={handleAirdrop}
+            disabled={airdropStatus === "in_progress"}
+            className="mt-2 text-xs"
+            variant="outline"
+            size="sm"
+          >
+            {airdropStatus === "in_progress" && (
+              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+            )}
+            {airdropStatus === "idle" && "Airdrop 1 SOL"}
+            {airdropStatus === "in_progress" && "Airdropping..."}
+            {airdropStatus === "success" && "Airdrop successful!"}
+            {airdropStatus === "error" && "Airdrop failed. Try again."}
+          </Button>
         </div>
 
         <div>

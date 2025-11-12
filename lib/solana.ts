@@ -4,33 +4,60 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
-  clusterApiUrl,
-  LAMPORTS_PER_SOL,
-  Keypair,
 } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
 import * as anchor from "@coral-xyz/anchor";
-import { BN } from "@coral-xyz/anchor";
+import habitTrackerAnchorIdl from "@/lib/idl/habit_tracker_anchor.json";
+
+type ProgramIdl = anchor.Idl & { address: string };
+
+const IDL = habitTrackerAnchorIdl as ProgramIdl;
+const INSTRUCTION_CODER = new anchor.BorshInstructionCoder(IDL);
 
 // DevNet configuration
-export const DEVNET_RPC = "https://api.devnet.solana.com";
-export const DEVNET_USDC_MINT = "EPjFWaJPuPj1j4q7W4R8Pg8XKk1mVjCTWC5qjLxvPeq";
-export const PROGRAM_ID = new PublicKey("9CD9sjrZXwLjBRy7v6MacPrcyVHntxd5EPY2a6BvMaQG");
+export const DEVNET_RPC = "https://devnet.helius-rpc.com/?api-key=3a8dbca3-c068-49c7-9d16-f1224d21aa32";
+export const DEVNET_USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+export const PROGRAM_ID = new PublicKey(IDL.address);
 
 export function getConnection(): Connection {
   return new Connection(DEVNET_RPC, "confirmed");
 }
 
-// Helper to get associated token account address (without creating it)
-export async function getOrCreateAssociatedTokenAccount(
+export async function ensureAssociatedTokenAccount(
   connection: Connection,
+  payer: PublicKey,
   mint: PublicKey,
-  owner: PublicKey
-): Promise<PublicKey> {
-  // For now, assume the ATA exists at the standard derived address
-  // In production, you'd check if it exists and create if needed
-  const { getAssociatedTokenAddressSync } = await import("@solana/spl-token");
-  return getAssociatedTokenAddressSync(mint, owner);
+  owner: PublicKey,
+  allowOwnerOffCurve = false
+): Promise<{ address: PublicKey; instruction?: TransactionInstruction }> {
+  const address = getAssociatedTokenAddressSync(
+    mint,
+    owner,
+    allowOwnerOffCurve,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  const info = await connection.getAccountInfo(address);
+  if (!info) {
+    return {
+      address,
+      instruction: createAssociatedTokenAccountInstruction(
+        payer,
+        address,
+        owner,
+        mint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+    };
+  }
+
+  return { address };
 }
 
 export interface GoalParams {
@@ -39,6 +66,7 @@ export interface GoalParams {
   endsOn: number;   // Unix timestamp
   authority: PublicKey;
   groupVault: PublicKey;
+  tokenMint: PublicKey;
 }
 
 export interface StakeParams {
@@ -70,10 +98,13 @@ export function deriveStakePda(goalPda: PublicKey, staker: PublicKey): [PublicKe
 /**
  * Derives the Goal Vault ATA PDA
  */
-export function deriveGoalVaultAta(goalPda: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("goal_vault"), goalPda.toBuffer()],
-    PROGRAM_ID
+export function deriveGoalVaultAta(goalPda: PublicKey, mint?: PublicKey): PublicKey {
+  return getAssociatedTokenAddressSync(
+    mint ?? new PublicKey(DEVNET_USDC_MINT),
+    goalPda,
+    true,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
   );
 }
 
@@ -88,22 +119,22 @@ export async function buildInitGoalTx(
   const connection = getConnection();
   const [goalPda] = deriveGoalPda(params.goalHash);
 
-  // Build instruction (simplified - you'd use Anchor for proper IDL)
+  const data = INSTRUCTION_CODER.encode("init_goal", {
+    goalHash: Array.from(params.goalHash),
+    startsOn: new anchor.BN(params.startsOn),
+    endsOn: new anchor.BN(params.endsOn),
+  });
+
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: goalPda, isSigner: false, isWritable: true },
       { pubkey: params.authority, isSigner: true, isWritable: true },
       { pubkey: params.groupVault, isSigner: false, isWritable: false },
-      { pubkey: new PublicKey(DEVNET_USDC_MINT), isSigner: false, isWritable: false },
+      { pubkey: params.tokenMint, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.concat([
-      Buffer.from([0x0]), // init_goal discriminator (simplified)
-      params.goalHash,
-      new BN(params.startsOn).toBuffer("le", 8),
-      new BN(params.endsOn).toBuffer("le", 8),
-    ]),
+    data,
   });
 
   const tx = new Transaction().add(instruction);
@@ -125,6 +156,10 @@ export async function buildOpenStakeTx(
   const [goalPda] = deriveGoalPda(params.goalHash);
   const [stakePda] = deriveStakePda(goalPda, params.staker);
 
+  const data = INSTRUCTION_CODER.encode("open_stake", {
+    amount: new anchor.BN(params.amount),
+  });
+
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
@@ -133,10 +168,7 @@ export async function buildOpenStakeTx(
       { pubkey: params.staker, isSigner: true, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.concat([
-      Buffer.from([0x1]), // open_stake discriminator (simplified)
-      new BN(params.amount).toBuffer("le", 8),
-    ]),
+    data,
   });
 
   const tx = new Transaction().add(instruction);
@@ -160,18 +192,20 @@ export async function buildDepositStakeTx(
   const [goalPda] = deriveGoalPda(params.goalHash);
   const [stakePda] = deriveStakePda(goalPda, params.staker);
 
+  const data = INSTRUCTION_CODER.encode("deposit_stake", {});
+
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: goalPda, isSigner: false, isWritable: false },
-      { pubkey: stakePda, isSigner: false, isWritable: false },
+      { pubkey: stakePda, isSigner: false, isWritable: true },
       { pubkey: params.staker, isSigner: true, isWritable: true },
       { pubkey: stakerAta, isSigner: false, isWritable: true },
       { pubkey: goalVaultAta, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.from([0x2]), // deposit_stake discriminator (simplified)
+    data,
   });
 
   const tx = new Transaction().add(instruction);
@@ -196,6 +230,8 @@ export async function buildResolveSuccessTx(
   const [goalPda] = deriveGoalPda(params.goalHash);
   const [stakePda] = deriveStakePda(goalPda, params.staker);
 
+  const data = INSTRUCTION_CODER.encode("resolve_success", {});
+
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
@@ -207,7 +243,7 @@ export async function buildResolveSuccessTx(
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.from([0x4]), // resolve_success discriminator (simplified)
+    data,
   });
 
   const tx = new Transaction().add(instruction);
@@ -232,6 +268,8 @@ export async function buildResolveFailureTx(
   const [goalPda] = deriveGoalPda(params.goalHash);
   const [stakePda] = deriveStakePda(goalPda, params.staker);
 
+  const data = INSTRUCTION_CODER.encode("resolve_failure", {});
+
   const instruction = new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
@@ -243,7 +281,7 @@ export async function buildResolveFailureTx(
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
-    data: Buffer.from([0x5]), // resolve_failure discriminator (simplified)
+    data,
   });
 
   const tx = new Transaction().add(instruction);

@@ -1,0 +1,696 @@
+{
+  "address": "Fbyu5W1jyoFnTvDrbwZvo8GpLXCc83HFt1RPtjVNkF1b",
+  "metadata": {
+    "name": "habit_tracker_anchor",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "cancel_before_start",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  111,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal.goal_hash",
+                "account": "Goal"
+              }
+            ]
+          },
+          "relations": [
+            "stake"
+          ]
+        },
+        {
+          "name": "stake",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal"
+              },
+              {
+                "kind": "account",
+                "path": "staker"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "staker_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "goal_vault_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit_stake",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": false,
+          "isSigner": false,
+          "relations": [
+            "stake"
+          ]
+        },
+        {
+          "name": "stake",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal"
+              },
+              {
+                "kind": "account",
+                "path": "staker"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "staker_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "goal_vault_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_goal",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  111,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "goal_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "group_vault",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "token_mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "goal_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "starts_on",
+          "type": "i64"
+        },
+        {
+          "name": "ends_on",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "open_stake",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stake",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal"
+              },
+              {
+                "kind": "account",
+                "path": "staker"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staker",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_failure",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  111,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal.goal_hash",
+                "account": "Goal"
+              }
+            ]
+          },
+          "relations": [
+            "stake"
+          ]
+        },
+        {
+          "name": "resolver",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "stake",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal"
+              },
+              {
+                "kind": "account",
+                "path": "stake.staker",
+                "account": "Stake"
+              }
+            ]
+          }
+        },
+        {
+          "name": "goal_vault_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "group_vault_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resolve_success",
+      "accounts": [
+        {
+          "name": "goal",
+          "isMut": false,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  111,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal.goal_hash",
+                "account": "Goal"
+              }
+            ]
+          },
+          "relations": [
+            "stake"
+          ]
+        },
+        {
+          "name": "resolver",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "stake",
+          "isMut": true,
+          "isSigner": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "goal"
+              },
+              {
+                "kind": "account",
+                "path": "stake.staker",
+                "account": "Stake"
+              }
+            ]
+          }
+        },
+        {
+          "name": "goal_vault_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "staker_ata",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "isMut": false,
+          "isSigner": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Goal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "goal_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "group_vault",
+            "type": "publicKey"
+          },
+          {
+            "name": "token_mint",
+            "type": "publicKey"
+          },
+          {
+            "name": "starts_on",
+            "type": "i64"
+          },
+          {
+            "name": "ends_on",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Stake",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "goal",
+            "type": "publicKey"
+          },
+          {
+            "name": "staker",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "GoalInitialized",
+      "fields": [
+        {
+          "name": "goal",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "authority",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "starts_on",
+          "type": "i64",
+          "index": false
+        },
+        {
+          "name": "ends_on",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "StakeCanceled",
+      "fields": [
+        {
+          "name": "stake",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "staker",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "StakeDeposited",
+      "fields": [
+        {
+          "name": "stake",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "StakeOpened",
+      "fields": [
+        {
+          "name": "stake",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "staker",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "goal",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "StakeResolvedFailure",
+      "fields": [
+        {
+          "name": "stake",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "group_vault",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "StakeResolvedSuccess",
+      "fields": [
+        {
+          "name": "stake",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "staker",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidTimeWindow",
+      "msg": "Start time must be after current time"
+    },
+    {
+      "code": 6001,
+      "name": "BadTimeWindow",
+      "msg": "Start time must be before end time"
+    },
+    {
+      "code": 6002,
+      "name": "AmountZero",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6003,
+      "name": "BadStatus",
+      "msg": "Invalid stake status for this operation"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadyStarted",
+      "msg": "Stake already started, cannot cancel"
+    },
+    {
+      "code": 6005,
+      "name": "NotAuthorized",
+      "msg": "Not authorized to perform this action"
+    },
+    {
+      "code": 6006,
+      "name": "TooEarly",
+      "msg": "Goal has not ended yet"
+    },
+    {
+      "code": 6007,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6008,
+      "name": "MissingFunds",
+      "msg": "Stake PDA does not hold enough funds"
+    }
+  ]
+}

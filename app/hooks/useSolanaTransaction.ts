@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Transaction, PublicKey } from "@solana/web3.js";
-import { useWallets } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth/solana";
 import { getConnection } from "@/lib/solana";
 
 export interface TransactionStatus {
@@ -24,8 +24,8 @@ export function useSolanaTransaction() {
       try {
         setTransactionStatus({ status: "loading" });
 
-        // Find Solana wallet from Privy
-        const solanaWallet = wallets.find((w) => w.chainType === "solana");
+        // Get Solana wallet from Privy
+        const solanaWallet = wallets[0];
         if (!solanaWallet) {
           throw new Error("No Solana wallet found. Privy Solana support may not be configured.");
         }
