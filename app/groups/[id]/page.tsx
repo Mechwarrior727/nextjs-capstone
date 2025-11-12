@@ -4,9 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Users, Settings, Target, UserPlus } from 'lucide-react';
 import { getGroupById } from '@/lib/groups';
+import { getGroupGoals } from '@/lib/goals';
 import GroupSettings from '@/components/GroupSettings';
 import InviteCodeDisplay from '@/components/InviteCodeDisplay';
 import GroupMembers from '@/components/GroupMembers';
+import GroupChat from '@/components/GroupChat';
+import CreateGoalDialog from '@/components/CreateGoalDialog';
+import GoalCard from '@/components/GoalCard';
 import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
 
@@ -19,7 +23,9 @@ export default function GroupDetailPage() {
     const groupId = params.id as string;
 
     const [group, setGroup] = useState<any>(null);
+    const [goals, setGoals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingGoals, setLoadingGoals] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('overview');
 
@@ -27,6 +33,7 @@ export default function GroupDetailPage() {
 
     useEffect(() => {
         fetchGroup();
+        fetchGoals();
     }, [groupId]);
 
     const fetchGroup = async () => {
@@ -42,6 +49,18 @@ export default function GroupDetailPage() {
         }
 
         setLoading(false);
+    };
+
+    const fetchGoals = async () => {
+        setLoadingGoals(true);
+        const result = await getGroupGoals(groupId);
+
+        if (result.success && result.data) {
+            setGoals(result.data);
+        } else {
+            setGoals([]);
+        }
+        setLoadingGoals(false);
     };
 
     // Helper function to get display name for a member
@@ -174,15 +193,38 @@ export default function GroupDetailPage() {
                         {/* Members Section */}
                         <GroupMembers members={group.group_members || []} />
 
-                        {/* Goals Section - Placeholder */}
-                        <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
-                            <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center gap-2">
-                                <Target size={24} />
-                                Goals
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                                No goals set yet. Create your first goal to start tracking progress!
-                            </p>
+                        {/* Goals Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-2xl font-bold text-black dark:text-white">Goals</h2>
+                                <CreateGoalDialog
+                                    groupId={groupId}
+                                    userId={user?.id || ''}
+                                    onGoalCreated={fetchGoals}
+                                />
+                            </div>
+
+                            {loadingGoals ? (
+                                <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
+                                    <p className="text-gray-600 dark:text-gray-400">Loading goals...</p>
+                                </div>
+                            ) : goals.length === 0 ? (
+                                <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
+                                    <h3 className="text-2xl font-bold text-black dark:text-white mb-2">No goals yet</h3>
+                                    <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first goal to start tracking progress!</p>
+                                    <CreateGoalDialog
+                                        groupId={groupId}
+                                        userId={user?.id || ''}
+                                        onGoalCreated={fetchGoals}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {goals.map((goal) => (
+                                        <GoalCard key={goal.id} goal={goal} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -195,6 +237,13 @@ export default function GroupDetailPage() {
                     <GroupSettings group={group} onUpdate={fetchGroup} userId={user?.id || ''} />
                 )}
             </div>
+
+            {/* Floating Chat */}
+            <GroupChat
+                groupId={groupId}
+                userId={user?.id || ''}
+                userName={user?.google?.name || user?.google?.email || 'User'}
+            />
         </div>
     );
 }
