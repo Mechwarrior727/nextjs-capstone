@@ -63,7 +63,7 @@ export default function GroupDetailPage() {
         setLoadingGoals(false);
     };
 
-    // Helper function to get display name for a member
+
     const getMemberDisplayName = (member: any) => {
         if (member.users?.display_name) {
             return member.users.display_name;

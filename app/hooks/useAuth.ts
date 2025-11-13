@@ -12,7 +12,6 @@ interface FitData {
     note?: string;
 }
 
-// Helper function to sync user data to Supabase
 async function syncUserToSupabase(privyUser: any) {
     try {
         const response = await fetch('/api/users/sync', {
@@ -31,12 +30,12 @@ async function syncUserToSupabase(privyUser: any) {
         const result = await response.json();
 
         if (result.success) {
-            console.log('✅ User data synced to Supabase');
+            console.log('User data synced to Supabase');
         } else {
-            console.error('❌ Failed to sync user data:', result.error);
+            console.error('Failed to sync user data:', result.error);
         }
     } catch (error) {
-        console.error('❌ Error syncing user to Supabase:', error);
+        console.error('Error syncing user to Supabase:', error);
     }
 }
 
@@ -50,7 +49,7 @@ export function useAuth() {
 
     const { reauthorize } = useOAuthTokens({
         onOAuthTokenGrant: ({ oAuthTokens }) => {
-            console.log('🔑 OAUTH TOKENS GRANTED:', oAuthTokens);
+            console.log('OAUTH TOKENS GRANTED:', oAuthTokens);
             console.log('Provider:', oAuthTokens.provider);
             console.log('Has access token:', !!oAuthTokens.accessToken);
             console.log('Token details:', {
@@ -62,17 +61,15 @@ export function useAuth() {
             if (oAuthTokens.provider === 'google') {
                 setGoogleTokens(oAuthTokens);
                 setError(null); // Clear any previous errors
-                console.log('✅ Google OAuth tokens captured successfully');
+                console.log('Google OAuth tokens captured successfully');
             }
         }
     });
 
-    // Debug: Log when the hook is initialized
     useEffect(() => {
-        console.log('🔧 useOAuthTokens hook initialized');
+        console.log('useOAuthTokens hook initialized');
     }, []);
 
-    // Sync user data to Supabase when authenticated
     useEffect(() => {
         if (authenticated && user) {
             console.log('👤 Syncing user data to Supabase...');
@@ -80,7 +77,6 @@ export function useAuth() {
         }
     }, [authenticated, user?.id]); // Only re-run if auth status or user ID changes
 
-    // Auto-fetch step data when Google tokens become available
     useEffect(() => {
         if (googleTokens && authenticated) {
             console.log('Google tokens available, fetching step data...');
@@ -88,26 +84,23 @@ export function useAuth() {
         }
     }, [googleTokens, authenticated]);
 
-    // Debug: Check if we can access tokens directly from user object
     useEffect(() => {
         if (user && authenticated) {
-            console.log('🔍 DEBUG: User object:', user);
-            console.log('🔍 DEBUG: Linked accounts:', user.linkedAccounts);
+            console.log('DEBUG: User object:', user);
+            console.log('DEBUG: Linked accounts:', user.linkedAccounts);
 
-            // Try to find Google account and check for tokens
             const googleAccount = user.linkedAccounts?.find(account =>
                 account.type === 'google_oauth'
             ) as any;
 
             if (googleAccount) {
-                console.log('🔍 DEBUG: Google account found:', googleAccount);
-                console.log('🔍 DEBUG: Google account keys:', Object.keys(googleAccount));
-                console.log('🔍 DEBUG: Google account oauth_tokens:', googleAccount.oauth_tokens);
+                console.log('DEBUG: Google account found:', googleAccount);
+                console.log('DEBUG: Google account keys:', Object.keys(googleAccount));
+                console.log('DEBUG: Google account oauth_tokens:', googleAccount.oauth_tokens);
 
-                // Try to access tokens through different properties
-                console.log('🔍 DEBUG: Checking all properties:');
+                console.log('DEBUG: Checking all properties:');
                 Object.keys(googleAccount).forEach(key => {
-                    console.log(`🔍 DEBUG: ${key}:`, googleAccount[key]);
+                    console.log(`DEBUG: ${key}:`, googleAccount[key]);
                 });
             }
         }
@@ -124,7 +117,6 @@ export function useAuth() {
         ? `${displayWallet.address.slice(0, 6)}...${displayWallet.address.slice(-4)}`
         : null;
 
-    // --- inside fetchStepData() ---
 	const fetchStepData = async () => {
 		if (!authenticated || !user) return;
 
@@ -132,7 +124,6 @@ export function useAuth() {
 		setError(null);
 
 		try {
-			// Try multiple ways to get the Google OAuth token
 			let accessToken = googleTokens?.accessToken;
 			if (!accessToken && user) {
 				const googleAccount = user.linkedAccounts?.find(
@@ -148,9 +139,8 @@ export function useAuth() {
 				setError("Google OAuth tokens not found. Please reauthorize.");
 				setLoading(false);
 				return;
-			}
+            }
 
-			// Time window (same as before)
 			const now = new Date();
 			const end = new Date();
 			const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -160,7 +150,7 @@ export function useAuth() {
 			const startTimeMillis = start.getTime();
 			const endTimeMillis = end.getTime();
 
-			console.log("📡 Calling backend /api/fit with Google token...");
+			console.log("Calling backend /api/fit with Google token...");
 			const response = await fetch("/api/fit", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -170,19 +160,19 @@ export function useAuth() {
 			const result = await response.json();
 
 			if (!response.ok) {
-				console.error("❌ /api/fit error:", result.error);
+				console.error("/api/fit error:", result.error);
 				setError(result.error || "Backend fetch failed");
 				setLoading(false);
 				return;
 			}
 
-			console.log("✅ Backend /api/fit success:", result);
+			console.log("Backend /api/fit success:", result);
 			setFitData({
 				days: result.data.days,
 				total: result.data.totalSteps,
 			});
 		} catch (err: any) {
-			console.error("❌ fetchStepData error:", err);
+			console.error("fetchStepData error:", err);
 			setError(err.message || "Failed to fetch data");
 		} finally {
 			setLoading(false);

@@ -18,7 +18,6 @@ interface GroupMembersProps {
     members: Member[];
 }
 
-// Helper function to get display name
 function getDisplayName(member: Member): string {
     // Priority: display_name > email > user_id
     if (member.users?.display_name) {
@@ -27,7 +26,6 @@ function getDisplayName(member: Member): string {
     if (member.users?.email) {
         return member.users.email;
     }
-    // Fallback to shortened user_id
     return member.user_id.split(':').pop()?.slice(0, 8) || member.user_id;
 }
 

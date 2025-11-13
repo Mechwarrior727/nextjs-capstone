@@ -11,7 +11,7 @@ export function getSupabaseAdmin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
 
   if (!supabaseUrl || !serviceKey) {
-    // Throw only when the route actually tries to use Supabase at runtime.
+
     throw new Error(
       "Missing Supabase env. Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE are set."
     );

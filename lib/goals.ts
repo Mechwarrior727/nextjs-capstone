@@ -15,7 +15,6 @@ export async function createGoal(
 ) {
     try {
         return await withAdmin(async (supabase) => {
-            // Verify user is a member of the group
             const { data: membership, error: memberError } = await supabase
                 .from('group_members')
                 .select('*')
@@ -109,7 +108,6 @@ export async function getGroupGoals(groupId: string) {
 export async function getGoalProgress(goalId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Get the goal details
             const { data: goal, error: goalError } = await supabase
                 .from('goals')
                 .select('*, user_goals(user_id)')
@@ -120,10 +118,9 @@ export async function getGoalProgress(goalId: string) {
                 return { success: false, error: 'Goal not found', data: null };
             }
 
-            // Get all users participating in this goal
+
             const userIds = goal.user_goals.map((ug: any) => ug.user_id);
 
-            // Get health data for all users for the goal period
             const { data: healthData, error: healthError } = await supabase
                 .from('user_health_data')
                 .select(`
@@ -144,7 +141,6 @@ export async function getGoalProgress(goalId: string) {
                 return { success: false, error: healthError.message, data: null };
             }
 
-            // Get user details for all participants
             const { data: users, error: usersError } = await supabase
                 .from('users')
                 .select('id, display_name, email')
@@ -155,7 +151,6 @@ export async function getGoalProgress(goalId: string) {
                 return { success: false, error: usersError.message, data: null };
             }
 
-            // Process data by user
             const progressByUser = users?.map(user => {
                 const userHealthData = healthData?.filter(d => d.user_id === user.id) || [];
 

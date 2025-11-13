@@ -1,4 +1,4 @@
-// app/api/progress/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { requirePrivyUser } from "@/lib/privy";
 import { getSupabaseAdmin } from "@/lib/supabase";

@@ -4,21 +4,15 @@ import { withAdmin } from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 
-// Load word list from file on server startup
 let WORD_LIST: string[] = [];
 
 function loadWordList(): string[] {
     if (WORD_LIST.length > 0) {
         return WORD_LIST;
     }
-
     try {
-        // Read from public/wordlist.txt or lib/wordlist.txt
-        // Adjust the path based on where you place your file
         const filePath = path.join(process.cwd(), 'lib', 'dictionary.txt');
         const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-        // Split by lines and filter out empty lines
         WORD_LIST = fileContent
             .split('\n')
             .map(word => word.trim().toLowerCase())
@@ -32,40 +26,30 @@ function loadWordList(): string[] {
         return WORD_LIST;
     } catch (error) {
         console.error('Error loading word list:', error);
-        // Fallback to a small list if file can't be read
-        WORD_LIST = [
-            'apple', 'banana', 'cherry', 'dragon', 'elephant', 'falcon',
-            'giraffe', 'hammer', 'island', 'jungle', 'kitten', 'ladder'
-        ];
-        console.warn('Using fallback word list');
-        return WORD_LIST;
+        throw new Error('Failed to load word list');
     }
 }
 
-/**
- * Generates a random 3-word invite code
- */
+
 function generateInviteCode(): string {
     const wordList = loadWordList();
     console.log(`Generating invite code from ${wordList.length} words`);
     const words: string[] = [];
+
     for (let i = 0; i < 3; i++) {
         const randomIndex = Math.floor(Math.random() * wordList.length);
         words.push(wordList[randomIndex]);
     }
+
     const code = words.join('-');
     console.log(`Generated invite code: ${code}`);
     return code;
 }
 
-/**
- * Generates a unique invite code for a group
- * Checks database to ensure uniqueness
- */
 export async function createInviteCodeForGroup(groupId: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Verify user is owner
+
             const { data: group, error: groupError } = await supabase
                 .from('groups')
                 .select('owner_id, invite_code')
@@ -80,18 +64,16 @@ export async function createInviteCodeForGroup(groupId: string, userId: string) 
                 return { success: false, error: 'Only the owner can generate invite codes' };
             }
 
-            // If group already has an invite code, return it
             if (group.invite_code) {
                 return { success: true, inviteCode: group.invite_code };
             }
 
-            // Generate unique code
+
             let inviteCode = generateInviteCode();
             let attempts = 0;
             const maxAttempts = 10;
 
             while (attempts < maxAttempts) {
-                // Check if code exists
                 const { data: existing } = await supabase
                     .from('groups')
                     .select('id')
@@ -99,7 +81,6 @@ export async function createInviteCodeForGroup(groupId: string, userId: string) 
                     .single();
 
                 if (!existing) {
-                    // Code is unique, assign it
                     const { error: updateError } = await supabase
                         .from('groups')
                         .update({ invite_code: inviteCode })
@@ -113,7 +94,6 @@ export async function createInviteCodeForGroup(groupId: string, userId: string) 
                     return { success: true, inviteCode };
                 }
 
-                // Code exists, generate new one
                 inviteCode = generateInviteCode();
                 attempts++;
             }
@@ -126,13 +106,11 @@ export async function createInviteCodeForGroup(groupId: string, userId: string) 
     }
 }
 
-/**
- * Regenerates invite code for a group
- */
+
 export async function regenerateInviteCode(groupId: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Verify user is owner
+
             const { data: group, error: groupError } = await supabase
                 .from('groups')
                 .select('owner_id')
@@ -147,7 +125,6 @@ export async function regenerateInviteCode(groupId: string, userId: string) {
                 return { success: false, error: 'Only the owner can regenerate invite codes' };
             }
 
-            // Generate new unique code
             let inviteCode = generateInviteCode();
             let attempts = 0;
             const maxAttempts = 10;
@@ -184,16 +161,11 @@ export async function regenerateInviteCode(groupId: string, userId: string) {
     }
 }
 
-/**
- * Joins a group using an invite code
- */
 export async function joinGroupWithCode(inviteCode: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Normalize the code
             const normalizedCode = inviteCode.toLowerCase().trim();
 
-            // Find group by invite code
             const { data: group, error: groupError } = await supabase
                 .from('groups')
                 .select('id, name, is_private')
@@ -204,7 +176,6 @@ export async function joinGroupWithCode(inviteCode: string, userId: string) {
                 return { success: false, error: 'Invalid invite code' };
             }
 
-            // Check if user is already a member
             const { data: existingMember } = await supabase
                 .from('group_members')
                 .select('user_id')
@@ -216,7 +187,6 @@ export async function joinGroupWithCode(inviteCode: string, userId: string) {
                 return { success: false, error: 'You are already a member of this group' };
             }
 
-            // Add user to group
             const { error: memberError } = await supabase
                 .from('group_members')
                 .insert({
@@ -238,9 +208,6 @@ export async function joinGroupWithCode(inviteCode: string, userId: string) {
     }
 }
 
-/**
- * Gets the invite code for a group (owner only)
- */
 export async function getGroupInviteCode(groupId: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
@@ -258,7 +225,6 @@ export async function getGroupInviteCode(groupId: string, userId: string) {
                 return { success: false, error: 'Only the owner can view invite codes' };
             }
 
-            // Generate code if it doesn't exist
             if (!group.invite_code) {
                 return await createInviteCodeForGroup(groupId, userId);
             }

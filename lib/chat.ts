@@ -5,7 +5,6 @@ import { withAdmin } from '@/lib/supabase';
 export async function getOrCreateGroupChatRoom(groupId: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Check if chat room already exists for this group
             const { data: existingRoom, error: fetchError } = await supabase
                 .from('chat_rooms')
                 .select('*')
@@ -16,7 +15,6 @@ export async function getOrCreateGroupChatRoom(groupId: string, userId: string) 
                 return { success: true, room: existingRoom };
             }
 
-            // Create new chat room
             const { data: newRoom, error: createError } = await supabase
                 .from('chat_rooms')
                 .insert({
@@ -32,7 +30,6 @@ export async function getOrCreateGroupChatRoom(groupId: string, userId: string) 
                 return { success: false, error: createError.message };
             }
 
-            // Add all group members to the chat room
             const { data: members } = await supabase
                 .from('group_members')
                 .select('user_id')

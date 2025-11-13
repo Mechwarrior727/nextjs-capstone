@@ -84,7 +84,6 @@ export default function GroupSettings({ group, onUpdate, userId }: GroupSettings
         setDeleteLoading(false);
 
         if (result.success) {
-            // Redirect to dashboard after successful deletion
             router.push('/');
         } else {
             setDeleteError(result.error || 'Failed to delete group');

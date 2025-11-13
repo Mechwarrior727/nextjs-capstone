@@ -6,7 +6,6 @@ import type { Group, GroupMemberWithGroup } from '@/lib/supabase-types';
 export async function createGroup(userId: string, groupName: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // Create the group
             const { data: group, error: groupError } = await supabase
                 .from('groups')
                 .insert({
@@ -23,7 +22,6 @@ export async function createGroup(userId: string, groupName: string) {
                 return { success: false, error: groupError.message };
             }
 
-            // Automatically add the creator as a member with 'owner' role
             const { error: memberError } = await supabase
                 .from('group_members')
                 .insert({
@@ -34,7 +32,6 @@ export async function createGroup(userId: string, groupName: string) {
 
             if (memberError) {
                 console.error('Error adding creator as member:', memberError);
-                // Rollback: delete the group if we couldn't add the member
                 await supabase.from('groups').delete().eq('id', group.id);
                 return { success: false, error: memberError.message };
             }
@@ -128,7 +125,6 @@ export async function updateGroup(
 ) {
     try {
         return await withAdmin(async (supabase) => {
-            // First check if user is the owner
             const { data: group, error: checkError } = await supabase
                 .from('groups')
                 .select('owner_id')
@@ -143,7 +139,6 @@ export async function updateGroup(
                 return { success: false, error: 'Only the owner can update group settings' };
             }
 
-            // Update the group
             const { data, error } = await supabase
                 .from('groups')
                 .update({
@@ -170,7 +165,6 @@ export async function updateGroup(
 export async function deleteGroup(groupId: string, userId: string) {
     try {
         return await withAdmin(async (supabase) => {
-            // First check if user is the owner
             const { data: group, error: checkError } = await supabase
                 .from('groups')
                 .select('owner_id')
@@ -185,7 +179,6 @@ export async function deleteGroup(groupId: string, userId: string) {
                 return { success: false, error: 'Only the owner can delete the group' };
             }
 
-            // Delete the group (cascading deletes should handle related records)
             const { error: deleteError } = await supabase
                 .from('groups')
                 .delete()

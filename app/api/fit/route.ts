@@ -12,7 +12,7 @@ async function fetchGoogleFitData(
   startTimeMillis: number,
   endTimeMillis: number
 ): Promise<GoogleFitData> {
-  console.log("📊 [fit] Fetching Google Fit data for:", {
+  console.log("[fit] Fetching Google Fit data for:", {
     startTimeMillis,
     endTimeMillis,
   });
@@ -36,7 +36,7 @@ async function fetchGoogleFitData(
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error("❌ [fit] Google Fit API error:", errText);
+    console.error("[fit] Google Fit API error:", errText);
     throw new Error(`Google Fit API error: ${res.status} - ${errText}`);
   }
 
@@ -70,7 +70,6 @@ async function fetchGoogleFitData(
     bucketMap[date] = { steps, calories };
   }
 
-  // Fill in missing days for smooth continuity
   const oneDay = 24 * 60 * 60 * 1000;
   for (let t = startTimeMillis; t <= endTimeMillis; t += oneDay) {
     const date = new Date(t).toISOString().slice(0, 10);
@@ -84,7 +83,7 @@ async function fetchGoogleFitData(
   const totalSteps = days.reduce((s, d) => s + d.steps, 0);
   const totalCalories = days.reduce((s, d) => s + d.calories, 0);
 
-  console.log("✅ [fit] Processed Google Fit data summary:", {
+  console.log("[fit] Processed Google Fit data summary:", {
     totalSteps,
     totalCalories,
     days: days.length,
@@ -108,14 +107,14 @@ export async function POST(req: NextRequest) {
       endTimeMillis
     );
 
-    // ✅ Dynamically determine base URL (works locally + hosted)
+ 
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const host = req.headers.get("host");
     const baseUrl = `${protocol}://${host}`;
 
-    console.log("🌐 [fit] Upserting health data via:", `${baseUrl}/api/db/upsert-health`);
+    console.log("[fit] Upserting health data via:", `${baseUrl}/api/db/upsert-health`);
     
-    // ✅ Sanitize (round floats) before DB upsert
+
     const safeDays = days.map(d => ({
       date: d.date,
       steps: Math.round(d.steps),
@@ -133,20 +132,20 @@ export async function POST(req: NextRequest) {
 
     const result = await upsert.json();
     if (!upsert.ok) {
-      console.error("❌ [fit] Upsert failed:", result);
+      console.error("[fit] Upsert failed:", result);
       throw new Error(result.error || "Upsert route failed");
     }
 
-    console.log(`✅ [fit] Synced ${result.inserted} days of data for user ${user.id}`);
+    console.log(`[fit] Synced ${result.inserted} days of data for user ${user.id}`);
 
-    // ✅ Respond with sanitized data (safeDays)
+
     return NextResponse.json({
       success: true,
       data: { days: safeDays, totalSteps, totalCalories },
       synced: true,
     });
   } catch (err: any) {
-    console.error("❌ [fit] Backend error:", err);
+    console.error("[fit] Backend error:", err);
     return NextResponse.json(
       { error: "Failed to fetch or sync Google Fit data", details: err.message },
       { status: 500 }

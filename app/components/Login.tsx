@@ -22,9 +22,7 @@ interface LoginProps {
     linkedWallets: any;
 }
 
-// Helper function to get user initials from Google account
 const getInitials = (user: any) => {
-    // Get from Google account name if available
     if (user?.google?.name) {
         const names = user.google.name.split(' ');
         if (names.length >= 2) {
@@ -33,25 +31,20 @@ const getInitials = (user: any) => {
         return user.google.name.slice(0, 2).toUpperCase();
     }
 
-    // Get from Google email
     if (user?.google?.email) {
         const email = user.google.email;
         const namePart = email.split('@')[0];
         return namePart.slice(0, 2).toUpperCase();
     }
 
-    // Fallback
     return "??";
 };
 
-// Helper function to get display name from Google
 const getDisplayName = (user: any) => {
-    // Prefer Google name over email
     if (user?.google?.name) {
         return user.google.name;
     }
 
-    // Use Google email
     if (user?.google?.email) {
         return user.google.email;
     }
@@ -65,7 +58,6 @@ export default function Login({ ready, authenticated, login, logout, user, linke
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
-    // Avoid hydration mismatch
     useEffect(() => {
         setMounted(true);
     }, []);
