@@ -106,10 +106,17 @@ export default function Dashboard({
         <div className="min-h-screen bg-white dark:bg-black">
             <div className="max-w-6xl mx-auto px-6 py-8">
                 {/* Welcome Section */}
-                <div className="mb-8">
+                <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-black dark:text-white mb-2">
                         Welcome back, {displayName || shortAddress || 'User'}!
                     </h1>
+                    <Link href="/escrow-test">
+                        <button
+                            className="rounded-lg bg-gray-600 hover:bg-gray-700 py-2 px-4 text-white text-sm font-medium"
+                        >
+                            Escrow Test Dashboard
+                        </button>
+                    </Link>
                 </div>
 
                 {/* Stats Overview */}
