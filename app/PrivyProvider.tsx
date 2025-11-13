@@ -1,6 +1,7 @@
 "use client";
 
 import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
+import {createSolanaRpc, createSolanaRpcSubscriptions} from '@solana/kit'; 
 import { useEffect } from "react";
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
@@ -62,7 +63,26 @@ export default function PrivyProviders({
   }
 
   return (
-    <PrivyProvider appId={PRIVY_APP_ID} config={{ loginMethods: ['google'] }}>
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        loginMethods: ['google'],
+        embeddedWallets: {
+          solana: {
+            createOnLogin: 'users-without-wallets',
+          },
+        },
+        solana: {
+          rpcs: {
+            'solana:devnet': {
+              rpc: createSolanaRpc('https://devnet.helius-rpc.com/?api-key=3a8dbca3-c068-49c7-9d16-f1224d21aa32'),
+              rpcSubscriptions: createSolanaRpcSubscriptions('wss://devnet.helius-rpc.com/?api-key=3a8dbca3-c068-49c7-9d16-f1224d21aa32')
+            },
+          },
+        },
+        externalWallets: {},
+      }}
+    >
       <SyncUser />
       {children}
     </PrivyProvider>
