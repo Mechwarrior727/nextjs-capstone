@@ -164,22 +164,51 @@ export function EscrowTestButton() {
   );
 
   const refreshAccounts = useCallback(
-    async (announce = false) => {
+    async (
+      announce = false
+    ): Promise<{
+      goal: GoalAccountData | null;
+      stake: StakeAccountData | null;
+    }> => {
       try {
+        if (!goalInput || goalInput.trim().length === 0) {
+          if (announce) {
+            setStatus({
+              step: "error",
+              message: "Goal identifier is empty",
+              error: "Please enter a goal identifier before refreshing",
+            });
+          }
+          setGoalAccount(null);
+          setStakeAccount(null);
+          return { goal: null, stake: null };
+        }
+
         const goalHashBuffer = await getGoalHashBuffer();
+        if (!solanaWallet?.address) {
+          setGoalAccount(null);
+          setStakeAccount(null);
+          return { goal: null, stake: null };
+        }
+
         if (announce) {
           setStatus({ step: "building", message: "Refreshing on-chain state..." });
         }
 
-        const stakerPk = solanaWallet?.address ? new PublicKey(solanaWallet.address) : null;
+        const stakerPk = new PublicKey(solanaWallet.address);
 
-        const [goal, stake] = await Promise.all([
-          fetchGoalAccount(goalHashBuffer),
-          stakerPk ? fetchStakeAccount(goalHashBuffer, stakerPk) : Promise.resolve(null),
-        ]);
-
+        // First fetch the goal
+        const goal = await fetchGoalAccount(goalHashBuffer);
         setGoalAccount(goal);
-        setStakeAccount(stake);
+
+        // Only fetch stake if goal exists
+        let stake: StakeAccountData | null = null;
+        if (goal) {
+          stake = await fetchStakeAccount(goalHashBuffer, stakerPk);
+          setStakeAccount(stake);
+        } else {
+          setStakeAccount(null);
+        }
 
         if (announce) {
           setStatus({
@@ -187,15 +216,20 @@ export function EscrowTestButton() {
             message: goal ? "On-chain state refreshed" : "Goal not found on-chain (yet)",
           });
         }
+
+        return { goal, stake };
       } catch (error) {
         if (announce) {
           handleError("State refresh", error);
         } else {
           console.error("State refresh error:", error);
         }
+        setGoalAccount(null);
+        setStakeAccount(null);
+        return { goal: null, stake: null };
       }
     },
-    [getGoalHashBuffer, handleError, solanaWallet]
+    [getGoalHashBuffer, goalInput, handleError, solanaWallet]
   );
 
   const runAction = useCallback(
@@ -213,6 +247,34 @@ export function EscrowTestButton() {
     [handleError]
   );
 
+  const requireGoalAccount = useCallback(async (): Promise<GoalAccountData> => {
+    if (goalAccount) {
+      return goalAccount;
+    }
+    const { goal } = await refreshAccounts();
+    if (!goal) {
+      throw new Error("Goal not found on-chain. Initialize or refresh the goal first.");
+    }
+    return goal;
+  }, [goalAccount, refreshAccounts]);
+
+  const requireStakeAccount = useCallback(async (): Promise<{
+    goal: GoalAccountData;
+    stake: StakeAccountData;
+  }> => {
+    if (goalAccount && stakeAccount) {
+      return { goal: goalAccount, stake: stakeAccount };
+    }
+    const { goal, stake } = await refreshAccounts();
+    if (!goal) {
+      throw new Error("Goal not found on-chain. Initialize or refresh the goal first.");
+    }
+    if (!stake) {
+      throw new Error("Stake not opened yet. Use Open Stake before continuing.");
+    }
+    return { goal, stake };
+  }, [goalAccount, refreshAccounts, stakeAccount]);
+
   const handleInitGoal = useCallback(async () => {
     await runAction("Initialize goal", async () => {
       const goalHashBuffer = await getGoalHashBuffer();
@@ -227,6 +289,13 @@ export function EscrowTestButton() {
       if (duration <= 0) {
         throw new Error("Duration must be greater than 0 minutes.");
       }
+
+       const { goal: existingGoal } = await refreshAccounts();
+       if (existingGoal) {
+         throw new Error(
+           "Goal already exists on-chain. Click “Refresh On-Chain State” or choose a new identifier."
+         );
+       }
 
       const startsOn = now + startDelay * 60;
       const endsOn = startsOn + duration * 60;
@@ -268,9 +337,7 @@ export function EscrowTestButton() {
 
   const handleOpenStake = useCallback(async () => {
     await runAction("Open stake", async () => {
-      if (!goalAccount) {
-        throw new Error("Goal is not initialized yet. Initialize or refresh first.");
-      }
+      await requireGoalAccount();
 
       const goalHashBuffer = await getGoalHashBuffer();
       const staker = getStakerPublicKey();
@@ -292,20 +359,15 @@ export function EscrowTestButton() {
     executeTransaction,
     getGoalHashBuffer,
     getStakerPublicKey,
-    goalAccount,
     parseStakeAmount,
     refreshAccounts,
+    requireGoalAccount,
     runAction,
   ]);
 
   const handleDepositStake = useCallback(async () => {
     await runAction("Deposit stake", async () => {
-      if (!goalAccount) {
-        throw new Error("Goal is not initialized yet.");
-      }
-      if (!stakeAccount) {
-        throw new Error("Stake not opened yet. Open a stake before depositing.");
-      }
+      const { stake } = await requireStakeAccount();
 
       const goalHashBuffer = await getGoalHashBuffer();
       const staker = getStakerPublicKey();
@@ -341,22 +403,19 @@ export function EscrowTestButton() {
     executeTransaction,
     getGoalHashBuffer,
     getStakerPublicKey,
-    goalAccount,
     mintKey,
     parseStakeAmount,
     refreshAccounts,
+    requireStakeAccount,
     runAction,
-    stakeAccount,
   ]);
 
   const handleCancelStake = useCallback(async () => {
     await runAction("Cancel stake", async () => {
-      if (!goalAccount || !stakeAccount) {
-        throw new Error("An active stake is required to cancel.");
-      }
+      const { goal, stake } = await requireStakeAccount();
 
       const now = Math.floor(Date.now() / 1000);
-      if (now >= goalAccount.startsOn) {
+      if (now >= goal.startsOn) {
         throw new Error("Goal already started; cannot cancel.");
       }
 
@@ -373,7 +432,7 @@ export function EscrowTestButton() {
         {
           goalHash: goalHashBuffer,
           staker,
-          amount: stakeAccount.amount,
+          amount: stake.amount,
         },
         stakerAta,
         goalVaultAta,
@@ -393,21 +452,18 @@ export function EscrowTestButton() {
     executeTransaction,
     getGoalHashBuffer,
     getStakerPublicKey,
-    goalAccount,
     mintKey,
     refreshAccounts,
+    requireStakeAccount,
     runAction,
-    stakeAccount,
   ]);
 
   const handleResolveSuccess = useCallback(async () => {
     await runAction("Resolve success", async () => {
-      if (!goalAccount || !stakeAccount) {
-        throw new Error("Goal and stake must exist before resolving.");
-      }
+      const { goal, stake } = await requireStakeAccount();
 
       const now = Math.floor(Date.now() / 1000);
-      if (now < goalAccount.endsOn) {
+      if (now < goal.endsOn) {
         throw new Error("Goal has not ended yet. Wait until the end time.");
       }
 
@@ -424,7 +480,7 @@ export function EscrowTestButton() {
         {
           goalHash: goalHashBuffer,
           staker,
-          amount: stakeAccount.amount,
+          amount: stake.amount,
         },
         stakerAta,
         goalVaultAta,
@@ -445,21 +501,18 @@ export function EscrowTestButton() {
     executeTransaction,
     getGoalHashBuffer,
     getStakerPublicKey,
-    goalAccount,
     mintKey,
     refreshAccounts,
+    requireStakeAccount,
     runAction,
-    stakeAccount,
   ]);
 
   const handleResolveFailure = useCallback(async () => {
     await runAction("Resolve failure", async () => {
-      if (!goalAccount || !stakeAccount) {
-        throw new Error("Goal and stake must exist before resolving.");
-      }
+      const { goal, stake } = await requireStakeAccount();
 
       const now = Math.floor(Date.now() / 1000);
-      if (now < goalAccount.endsOn) {
+      if (now < goal.endsOn) {
         throw new Error("Goal has not ended yet. Wait until the end time.");
       }
 
@@ -476,7 +529,7 @@ export function EscrowTestButton() {
         {
           goalHash: goalHashBuffer,
           staker,
-          amount: stakeAccount.amount,
+          amount: stake.amount,
         },
         goalVaultAta,
         groupVaultAta,
@@ -497,11 +550,10 @@ export function EscrowTestButton() {
     executeTransaction,
     getGoalHashBuffer,
     getStakerPublicKey,
-    goalAccount,
     mintKey,
     refreshAccounts,
+    requireStakeAccount,
     runAction,
-    stakeAccount,
   ]);
 
   const handleAirdrop = useCallback(async () => {
@@ -536,12 +588,11 @@ export function EscrowTestButton() {
     goalAccount && deriveGoalVaultAta(goalAccount.goalPda, goalAccount.tokenMint);
 
   return (
-    <div className="space-y-6 rounded-lg border p-4">
-      <div>
-        <h3 className="text-lg font-semibold">Escrow Playground</h3>
-        <p className="text-sm text-gray-600">
-          Create a goal, open and fund stakes, then cancel or resolve them to test every branch of the
-          Anchor program on devnet USDC.
+    <div className="space-y-6 rounded-lg border-2 border-gray-800 bg-gray-50 p-6">
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 rounded-lg">
+        <h3 className="text-2xl font-bold text-white">Escrow Playground</h3>
+        <p className="text-sm text-indigo-100 mt-1">
+          Create a goal, open and fund stakes, then cancel or resolve them to test every branch of the Anchor program on devnet USDC.
         </p>
       </div>
 
@@ -552,61 +603,77 @@ export function EscrowTestButton() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-3 rounded border p-4">
-          <h4 className="font-semibold">Goal Setup</h4>
+        <div className="space-y-3 rounded-lg border-2 border-indigo-300 bg-white p-4 shadow-sm">
+          <h4 className="font-bold text-lg text-indigo-900 border-b-2 border-indigo-300 pb-2">
+            1️⃣ Goal Setup
+          </h4>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Goal Identifier</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-gray-800">Goal Identifier</label>
+              <button
+                onClick={() => setGoalInput(`test-goal-${Date.now()}`)}
+                disabled={isLoading}
+                className="text-xs bg-blue-300 hover:bg-blue-400 text-blue-900 font-bold px-2 py-1 rounded"
+              >
+                Generate New
+              </button>
+            </div>
             <Input
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
               placeholder="32-byte hash or any string"
               disabled={isLoading}
-              className="text-xs"
+              className="text-sm font-bold text-gray-900 bg-blue-50 border-blue-400 border-2"
             />
-            <p className="text-xs text-gray-500">
-              Provide 64 hex chars for a deterministic hash or enter any text to auto-hash via SHA-256.
+            <p className="text-xs text-gray-700 font-medium">
+              💡 Provide 64 hex chars for deterministic hash or enter any text to auto-hash via SHA-256. Click "Generate New" for a unique timestamp-based identifier.
             </p>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium">Start Delay (minutes)</label>
+              <label className="text-sm font-semibold text-gray-800">Start Delay (minutes)</label>
               <Input
                 type="number"
                 min={1}
                 value={startDelayMinutes}
                 onChange={(e) => setStartDelayMinutes(e.target.value)}
                 disabled={isLoading}
+                className="text-sm font-bold text-gray-900 bg-blue-50 border-blue-400 border-2"
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Duration (minutes)</label>
+              <label className="text-sm font-semibold text-gray-800">Duration (minutes)</label>
               <Input
                 type="number"
                 min={1}
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value)}
                 disabled={isLoading}
+                className="text-sm font-bold text-gray-900 bg-blue-50 border-blue-400 border-2"
               />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleInitGoal} disabled={isLoading || !solanaWallet?.address}>
+            <Button onClick={handleInitGoal} disabled={isLoading || !solanaWallet?.address} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
               Initialize Goal
             </Button>
             <Button
               variant="outline"
               onClick={() => refreshAccounts(true)}
               disabled={isLoading}
+              className="border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold"
             >
-              Refresh On-Chain State
+              Refresh State
             </Button>
           </div>
         </div>
 
-        <div className="space-y-3 rounded border p-4">
-          <h4 className="font-semibold">Stake Funding</h4>
+        <div className="space-y-3 rounded-lg border-2 border-green-300 bg-white p-4 shadow-sm">
+          <h4 className="font-bold text-lg text-green-900 border-b-2 border-green-300 pb-2">
+            2️⃣ Stake Funding
+          </h4>
           <div>
-            <label className="text-sm font-medium">Stake Amount (USDC)</label>
+            <label className="text-sm font-semibold text-gray-800">Stake Amount (USDC)</label>
             <Input
               type="number"
               min="0.1"
@@ -614,84 +681,87 @@ export function EscrowTestButton() {
               value={stakeAmount}
               onChange={(e) => setStakeAmount(e.target.value)}
               disabled={isLoading}
+              className="text-sm font-bold text-gray-900 bg-green-50 border-green-400 border-2"
             />
-            <p className="text-xs text-gray-500">
-              Requires devnet USDC (mint {DEVNET_USDC_MINT}).
+            <p className="text-xs text-gray-700 font-medium">
+              💡 Requires devnet USDC (mint {DEVNET_USDC_MINT}).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleOpenStake} disabled={isLoading || !solanaWallet?.address}>
+            <Button onClick={handleOpenStake} disabled={isLoading || !solanaWallet?.address} className="bg-green-600 hover:bg-green-700 text-white font-bold">
               Open Stake
             </Button>
-            <Button onClick={handleDepositStake} disabled={isLoading || !solanaWallet?.address}>
+            <Button onClick={handleDepositStake} disabled={isLoading || !solanaWallet?.address} className="bg-green-600 hover:bg-green-700 text-white font-bold">
               Deposit Stake
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="space-y-3 rounded border p-4">
-        <h4 className="font-semibold">Resolution Controls</h4>
+      <div className="space-y-3 rounded-lg border-2 border-orange-300 bg-white p-4 shadow-sm">
+        <h4 className="font-bold text-lg text-orange-900 border-b-2 border-orange-300 pb-2">
+          3️⃣ Resolution Controls
+        </h4>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant="outline"
             onClick={handleCancelStake}
             disabled={isLoading || !solanaWallet?.address}
+            className="bg-orange-600 hover:bg-orange-700 text-white font-bold"
           >
             Cancel Before Start
           </Button>
           <Button
-            variant="outline"
             onClick={handleResolveSuccess}
             disabled={isLoading || !solanaWallet?.address}
+            className="bg-green-700 hover:bg-green-800 text-white font-bold"
           >
             Resolve Success
           </Button>
           <Button
-            variant="outline"
             onClick={handleResolveFailure}
             disabled={isLoading || !solanaWallet?.address}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold"
           >
             Resolve Failure
           </Button>
         </div>
-        <p className="text-xs text-gray-500">
-          Resolve actions require the goal to be past its end time. Cancel is only available before the start time.
+        <p className="text-sm text-gray-700 font-semibold">
+          ⏰ Resolve actions require the goal to be past its end time. Cancel is only available before the start time.
         </p>
       </div>
 
       {status.step !== "idle" && (
         <div
-          className={`rounded p-3 text-sm ${
+          className={`rounded-lg p-4 text-sm border-2 ${
             status.step === "success"
-              ? "bg-green-50 text-green-700"
+              ? "bg-green-50 text-green-900 border-green-400"
               : status.step === "error"
-              ? "bg-red-50 text-red-700"
-              : "bg-blue-50 text-blue-700"
+              ? "bg-red-50 text-red-900 border-red-400"
+              : "bg-blue-50 text-blue-900 border-blue-400"
           }`}
         >
           <div className="flex items-start gap-2">
             {status.step === "success" && (
-              <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-700" />
             )}
             {status.step === "error" && (
-              <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-700" />
             )}
             {["building", "signing", "broadcasting", "confirming"].includes(status.step) && (
-              <Loader2 className="mt-0.5 h-4 w-4 flex-shrink-0 animate-spin" />
+              <Loader2 className="mt-0.5 h-5 w-5 flex-shrink-0 animate-spin text-blue-700" />
             )}
             <div className="flex-1">
-              <p className="font-medium">{status.message}</p>
+              <p className="font-bold">{status.message}</p>
               {status.error && (
-                <p className="mt-1 text-xs opacity-75">{status.error}</p>
+                <p className="mt-2 text-sm font-semibold">{status.error}</p>
               )}
               {status.signature && (
-                <p className="mt-1 text-xs">
+                <p className="mt-2 text-sm">
                   <a
                     href={`https://explorer.solana.com/tx/${status.signature}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline hover:no-underline"
+                    className="font-bold underline hover:no-underline"
                   >
                     View on Solana Explorer
                   </a>
@@ -703,89 +773,93 @@ export function EscrowTestButton() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2 rounded border p-4 text-sm">
-          <h4 className="font-semibold">Goal Snapshot</h4>
+        <div className="space-y-2 rounded-lg border-2 border-blue-300 bg-blue-50 p-4 text-sm">
+          <h4 className="font-bold text-lg text-blue-900 border-b-2 border-blue-300 pb-2">
+            📋 Goal Snapshot
+          </h4>
           {goalAccount ? (
-            <dl className="space-y-1">
+            <dl className="space-y-2">
               <div>
-                <dt className="text-gray-500">Goal PDA</dt>
-                <dd className="font-mono text-xs break-all">{goalAccount.goalPda.toBase58()}</dd>
+                <dt className="text-blue-800 font-semibold text-xs">Goal PDA</dt>
+                <dd className="font-mono text-xs break-all text-gray-700">{goalAccount.goalPda.toBase58()}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Goal Hash</dt>
-                <dd className="font-mono text-xs break-all">
+                <dt className="text-blue-800 font-semibold text-xs">Goal Hash</dt>
+                <dd className="font-mono text-xs break-all text-gray-700">
                   {goalAccount.goalHash.toString("hex")}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Authority</dt>
-                <dd className="font-mono text-xs break-all">
+                <dt className="text-blue-800 font-semibold text-xs">Authority</dt>
+                <dd className="font-mono text-xs break-all text-gray-700">
                   {goalAccount.authority.toBase58()}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Group Vault ATA</dt>
-                <dd className="font-mono text-xs break-all">
+                <dt className="text-blue-800 font-semibold text-xs">Group Vault ATA</dt>
+                <dd className="font-mono text-xs break-all text-gray-700">
                   {goalAccount.groupVault.toBase58()}
                 </dd>
               </div>
               {goalVaultAddress && (
                 <div>
-                  <dt className="text-gray-500">Goal Vault ATA</dt>
-                  <dd className="font-mono text-xs break-all">{goalVaultAddress.toBase58()}</dd>
+                  <dt className="text-blue-800 font-semibold text-xs">Goal Vault ATA</dt>
+                  <dd className="font-mono text-xs break-all text-gray-700">{goalVaultAddress.toBase58()}</dd>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
-                  <dt className="text-gray-500">Starts</dt>
-                  <dd>{formatTimestamp(goalAccount.startsOn)}</dd>
+                  <dt className="text-blue-800 font-semibold text-xs">Starts</dt>
+                  <dd className="text-gray-700 text-sm font-medium">{formatTimestamp(goalAccount.startsOn)}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Ends</dt>
-                  <dd>{formatTimestamp(goalAccount.endsOn)}</dd>
+                  <dt className="text-blue-800 font-semibold text-xs">Ends</dt>
+                  <dd className="text-gray-700 text-sm font-medium">{formatTimestamp(goalAccount.endsOn)}</dd>
                 </div>
               </div>
             </dl>
           ) : (
-            <p className="text-gray-500">No on-chain goal found yet.</p>
+            <p className="text-blue-800 font-semibold">📌 No on-chain goal found yet.</p>
           )}
         </div>
 
-        <div className="space-y-2 rounded border p-4 text-sm">
-          <h4 className="font-semibold">Stake Snapshot</h4>
+        <div className="space-y-2 rounded-lg border-2 border-purple-300 bg-purple-50 p-4 text-sm">
+          <h4 className="font-bold text-lg text-purple-900 border-b-2 border-purple-300 pb-2">
+            💰 Stake Snapshot
+          </h4>
           {stakeAccount ? (
-            <dl className="space-y-1">
+            <dl className="space-y-2">
               <div>
-                <dt className="text-gray-500">Stake PDA</dt>
-                <dd className="font-mono text-xs break-all">{stakeAccount.stakePda.toBase58()}</dd>
+                <dt className="text-purple-800 font-semibold text-xs">Stake PDA</dt>
+                <dd className="font-mono text-xs break-all text-gray-700">{stakeAccount.stakePda.toBase58()}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Amount</dt>
-                <dd>{formatUsdc(stakeAccount.amount)} USDC</dd>
+                <dt className="text-purple-800 font-semibold text-xs">Amount</dt>
+                <dd className="text-gray-700 text-sm font-bold">{formatUsdc(stakeAccount.amount)} USDC</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Status</dt>
-                <dd>{STAKE_STATUS_LABELS[stakeAccount.status]}</dd>
+                <dt className="text-purple-800 font-semibold text-xs">Status</dt>
+                <dd className="text-gray-700 text-sm font-bold">{STAKE_STATUS_LABELS[stakeAccount.status]}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Created</dt>
-                <dd>{formatTimestamp(stakeAccount.createdAt)}</dd>
+                <dt className="text-purple-800 font-semibold text-xs">Created</dt>
+                <dd className="text-gray-700 text-sm font-medium">{formatTimestamp(stakeAccount.createdAt)}</dd>
               </div>
             </dl>
           ) : (
-            <p className="text-gray-500">Stake not opened yet.</p>
+            <p className="text-purple-800 font-semibold">📌 Stake not opened yet.</p>
           )}
         </div>
       </div>
 
-      <div className="space-y-2 rounded bg-gray-50 p-3 text-xs text-gray-600">
-        <p className="font-medium">Funding helpers</p>
-        <ul className="list-inside list-disc space-y-1">
+      <div className="space-y-3 rounded-lg border-2 border-green-400 bg-green-50 p-4">
+        <p className="font-bold text-lg text-green-900">🛠️ Funding & Setup Helpers</p>
+        <ul className="list-inside list-disc space-y-2 text-sm text-green-800 font-medium">
           <li>✅ Logged in with Privy (Google)</li>
           <li>🔑 Privy embedded Solana wallet (auto-created)</li>
           <li>💰 Devnet USDC from{" "}
             <a
-              className="text-blue-600 underline hover:no-underline"
+              className="font-bold text-green-700 underline hover:text-green-900"
               href="https://faucet.orca.so"
               target="_blank"
               rel="noopener noreferrer"
@@ -793,26 +867,24 @@ export function EscrowTestButton() {
               Orca Faucet
             </a>
           </li>
-          <li>⛽ SOL for fees (~0.001 SOL). Use the button below for 1 SOL.</li>
+          <li>⛽ SOL for transaction fees (~0.001 SOL per transaction). Click the button below to get 1 SOL.</li>
         </ul>
         <Button
           onClick={handleAirdrop}
           disabled={airdropStatus === "in_progress"}
-          className="text-xs"
-          variant="outline"
+          className="mt-2 bg-green-600 hover:bg-green-700 text-white font-bold"
         >
-          {airdropStatus === "in_progress" && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-          {airdropStatus === "idle" && "Airdrop 1 SOL"}
+          {airdropStatus === "in_progress" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {airdropStatus === "idle" && "🚀 Airdrop 1 SOL"}
           {airdropStatus === "in_progress" && "Airdropping..."}
-          {airdropStatus === "success" && "Airdrop successful!"}
-          {airdropStatus === "error" && "Airdrop failed. Try again."}
+          {airdropStatus === "success" && "✓ Airdrop successful!"}
+          {airdropStatus === "error" && "❌ Airdrop failed. Try again."}
         </Button>
       </div>
 
       {solanaWallet?.address && (
-        <div className="text-xs text-gray-500">
-          Wallet: {solanaWallet.address.slice(0, 8)}...
-          {solanaWallet.address.slice(-8)}
+        <div className="rounded-lg bg-gray-700 text-white p-3 text-sm font-semibold">
+          🔐 Connected Wallet: <code className="text-yellow-300">{solanaWallet.address.slice(0, 8)}...{solanaWallet.address.slice(-8)}</code>
         </div>
       )}
     </div>
