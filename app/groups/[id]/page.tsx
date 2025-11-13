@@ -63,7 +63,6 @@ export default function GroupDetailPage() {
         setLoadingGoals(false);
     };
 
-
     const getMemberDisplayName = (member: any) => {
         if (member.users?.display_name) {
             return member.users.display_name;
@@ -211,12 +210,7 @@ export default function GroupDetailPage() {
                             ) : goals.length === 0 ? (
                                 <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-12 border border-gray-200 dark:border-gray-800 text-center">
                                     <h3 className="text-2xl font-bold text-black dark:text-white mb-2">No goals yet</h3>
-                                    <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first goal to start tracking progress!</p>
-                                    <CreateGoalDialog
-                                        groupId={groupId}
-                                        userId={user?.id || ''}
-                                        onGoalCreated={fetchGoals}
-                                    />
+                                    <p className="text-gray-600 dark:text-gray-400">Create your first goal to start tracking progress!</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
