@@ -1,48 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePrivySession } from "@/lib/privy";
 
-// --- Types ---
 interface GoogleFitData {
-  days: Array<{
-    date: string;
-    steps: number;
-    calories: number;
-  }>;
+  days: Array<{ date: string; steps: number; calories: number }>;
   totalSteps: number;
   totalCalories: number;
 }
 
-interface GoogleFitBucket {
-  startTimeMillis: string;
-  endTimeMillis: string;
-  dataset: Array<{
-    dataSourceId: string;
-    point: Array<{
-      startTimeNanos: string;
-      endTimeNanos: string;
-      value: Array<{
-        intVal?: number;
-        fpVal?: number;
-      }>[];
-    }>[];
-  }>[];
-}
-
-// --- Helper: calculate date range ---
-// This function is no longer needed as the client will provide the date range
-// function getLast30DaysMillis() { ... }
-
-// --- Helper: fetch data from Google Fit ---
-async function fetchStepData(
+async function fetchGoogleFitData(
   accessToken: string,
   startTimeMillis: number,
   endTimeMillis: number
 ): Promise<GoogleFitData> {
-
-  console.log("📊 Fetching Google Fit data for date range:", {
+  console.log("📊 [fit] Fetching Google Fit data for:", {
     startTimeMillis,
     endTimeMillis,
-    durationDays: Math.round((endTimeMillis - startTimeMillis) / (1000 * 60 * 60 * 24)),
   });
 
   const res = await fetch("https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate", {
@@ -63,33 +35,34 @@ async function fetchStepData(
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    console.error("❌ Google Fit API error:", errorText);
-    throw new Error(`Google Fit API error: ${res.status} - ${errorText}`);
+    const errText = await res.text();
+    console.error("❌ [fit] Google Fit API error:", errText);
+    throw new Error(`Google Fit API error: ${res.status} - ${errText}`);
   }
 
   const data = await res.json();
   const buckets = data.bucket ?? [];
 
-  // Build map date → { steps, calories }
+  const days: Array<{ date: string; steps: number; calories: number }> = [];
   const bucketMap: Record<string, { steps: number; calories: number }> = {};
+
   for (const b of buckets) {
     let steps = 0;
     let calories = 0;
 
     for (const dataset of b.dataset ?? []) {
-      const sourceId = dataset.dataSourceId || "";
+      const id = dataset.dataSourceId || "";
       for (const p of dataset.point ?? []) {
         const v = p.value?.[0];
-        const n =
+        const val =
           typeof v?.intVal === "number"
             ? v.intVal
             : typeof v?.fpVal === "number"
             ? v.fpVal
             : 0;
 
-        if (sourceId.includes("step_count")) steps += n;
-        else if (sourceId.includes("calories")) calories += n;
+        if (id.includes("step_count")) steps += val;
+        if (id.includes("calories")) calories += val;
       }
     }
 
@@ -97,10 +70,9 @@ async function fetchStepData(
     bucketMap[date] = { steps, calories };
   }
 
-  // Fill in missing days
-  const days: Array<{ date: string; steps: number; calories: number }> = [];
-  const dayMillis = 24 * 60 * 60 * 1000;
-  for (let t = startTimeMillis; t <= endTimeMillis; t += dayMillis) {
+  // Fill in missing days for smooth continuity
+  const oneDay = 24 * 60 * 60 * 1000;
+  for (let t = startTimeMillis; t <= endTimeMillis; t += oneDay) {
     const date = new Date(t).toISOString().slice(0, 10);
     days.push({
       date,
@@ -112,110 +84,71 @@ async function fetchStepData(
   const totalSteps = days.reduce((s, d) => s + d.steps, 0);
   const totalCalories = days.reduce((s, d) => s + d.calories, 0);
 
-  console.log("✅ Processed Google Fit data:", {
-    daysCount: days.length,
+  console.log("✅ [fit] Processed Google Fit data summary:", {
     totalSteps,
     totalCalories,
-    avgStepsPerDay: Math.round(totalSteps / days.length),
-    avgCaloriesPerDay: Math.round(totalCalories / days.length),
+    days: days.length,
   });
 
   return { days, totalSteps, totalCalories };
 }
 
-// --- Main API handler ---
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { accessToken, startTimeMillis, endTimeMillis } = await request.json();
-    if (!accessToken || !startTimeMillis || !endTimeMillis) {
-      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+    const { accessToken, startTimeMillis, endTimeMillis } = await req.json();
+
+    if (!accessToken) {
+      return NextResponse.json({ error: "Missing accessToken" }, { status: 400 });
     }
 
-    console.log("🚀 [API] Received Google OAuth token and time range, calling Google Fit API");
-    const { days, totalSteps, totalCalories } = await fetchStepData(
+    const { user } = await requirePrivySession(req);
+    const { days, totalSteps, totalCalories } = await fetchGoogleFitData(
       accessToken,
       startTimeMillis,
       endTimeMillis
     );
 
-    // 2️⃣ Verify Privy session
-    const { user } = await requirePrivySession(request);
+    // ✅ Dynamically determine base URL (works locally + hosted)
+    const protocol = req.headers.get("x-forwarded-proto") || "http";
+    const host = req.headers.get("host");
+    const baseUrl = `${protocol}://${host}`;
 
-    // 3️⃣ Send data to /api/db/upsert-health instead of direct Supabase access
-    console.log("📤 Forwarding health data to /api/db/upsert-health...");
-    const upsertResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/db/upsert-health`, {
+    console.log("🌐 [fit] Upserting health data via:", `${baseUrl}/api/db/upsert-health`);
+    
+    // ✅ Sanitize (round floats) before DB upsert
+    const safeDays = days.map(d => ({
+      date: d.date,
+      steps: Math.round(d.steps),
+      calories: Math.round(d.calories),
+    }));
+
+    const upsert = await fetch(`${baseUrl}/api/db/upsert-health`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Cookie: request.headers.get("cookie") || "",
+        Cookie: req.headers.get("cookie") || "",
       },
-      body: JSON.stringify({ data: days }),
+      body: JSON.stringify({ data: safeDays }),
     });
 
-    const upsertResult = await upsertResponse.json();
-
-    if (!upsertResponse.ok) {
-      console.error("❌ Upsert-health route failed:", upsertResult);
-      throw new Error(upsertResult.error || "Upsert route failed");
+    const result = await upsert.json();
+    if (!upsert.ok) {
+      console.error("❌ [fit] Upsert failed:", result);
+      throw new Error(result.error || "Upsert route failed");
     }
 
-    console.log(`✅ Synced ${upsertResult.inserted} days of data for user ${user.id}`);
+    console.log(`✅ [fit] Synced ${result.inserted} days of data for user ${user.id}`);
 
-    // 4️⃣ Return response (keep your same format)
+    // ✅ Respond with sanitized data (safeDays)
     return NextResponse.json({
       success: true,
-      data: { days, totalSteps, totalCalories },
-      metadata: {
-        daysCount: days.length,
-        dateRange: {
-          start: new Date(startTimeMillis).toISOString(),
-          end: new Date(endTimeMillis).toISOString(),
-        },
-        syncedToSupabase: true,
-      },
+      data: { days: safeDays, totalSteps, totalCalories },
+      synced: true,
     });
-  } catch (error: any) {
-    console.error("❌ [API] Error in Google Fit integration:", error);
-
-    if (error.message?.includes("OAuth token expired") || error.message?.includes("401")) {
-      return NextResponse.json(
-        {
-          error: "Google OAuth token expired. Please reauthorize with Google.",
-          code: "TOKEN_EXPIRED",
-          action: "reauthorize",
-        },
-        { status: 401 }
-      );
-    }
-
-    if (error.message?.includes("No Google OAuth token found")) {
-      return NextResponse.json(
-        {
-          error: "No Google OAuth token found. Please login with Google and grant fitness permissions.",
-          code: "NO_GOOGLE_TOKEN",
-          action: "login_google",
-        },
-        { status: 404 }
-      );
-    }
-
-    if (error.message?.includes("rate limit") || error.message?.includes("429")) {
-      return NextResponse.json(
-        {
-          error: "Google Fit API rate limit exceeded. Please try again later.",
-          code: "RATE_LIMIT",
-          retryAfter: 60,
-        },
-        { status: 429 }
-      );
-    }
-
+  } catch (err: any) {
+    console.error("❌ [fit] Backend error:", err);
     return NextResponse.json(
-      {
-        error: "Failed to fetch or sync Google Fit data",
-        code: "UNKNOWN_ERROR",
-        details: process.env.NODE_ENV === "development" ? error.message : undefined,
-      },
+      { error: "Failed to fetch or sync Google Fit data", details: err.message },
       { status: 500 }
     );
   }
