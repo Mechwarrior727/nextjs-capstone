@@ -18,6 +18,7 @@ type ProgramIdl = anchor.Idl & { address: string };
 
 const IDL = habitTrackerAnchorIdl as ProgramIdl;
 const INSTRUCTION_CODER = new anchor.BorshInstructionCoder(IDL);
+const ACCOUNTS_CODER = new anchor.BorshAccountsCoder(IDL);
 
 // DevNet configuration
 export const DEVNET_RPC = "https://devnet.helius-rpc.com/?api-key=3a8dbca3-c068-49c7-9d16-f1224d21aa32";
@@ -73,6 +74,32 @@ export interface StakeParams {
   goalHash: Buffer;
   staker: PublicKey;
   amount: number; // In raw token units (for USDC, 1 USDC = 1,000,000)
+}
+
+export enum StakeStatus {
+  Pending = 0,
+  Success = 1,
+  Failure = 2,
+  Canceled = 3,
+}
+
+export interface GoalAccountData {
+  goalPda: PublicKey;
+  goalHash: Buffer;
+  authority: PublicKey;
+  groupVault: PublicKey;
+  tokenMint: PublicKey;
+  startsOn: number;
+  endsOn: number;
+}
+
+export interface StakeAccountData {
+  stakePda: PublicKey;
+  goal: PublicKey;
+  staker: PublicKey;
+  amount: number;
+  status: StakeStatus;
+  createdAt: number;
 }
 
 /**
@@ -216,6 +243,40 @@ export async function buildDepositStakeTx(
   return tx;
 }
 
+export async function buildCancelBeforeStartTx(
+  params: StakeParams,
+  stakerAta: PublicKey,
+  goalVaultAta: PublicKey,
+  payer: PublicKey
+): Promise<Transaction> {
+  const connection = getConnection();
+  const [goalPda] = deriveGoalPda(params.goalHash);
+  const [stakePda] = deriveStakePda(goalPda, params.staker);
+
+  const data = INSTRUCTION_CODER.encode("cancel_before_start", {});
+
+  const instruction = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: goalPda, isSigner: false, isWritable: false },
+      { pubkey: stakePda, isSigner: false, isWritable: true },
+      { pubkey: params.staker, isSigner: true, isWritable: true },
+      { pubkey: stakerAta, isSigner: false, isWritable: true },
+      { pubkey: goalVaultAta, isSigner: false, isWritable: true },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+
+  const tx = new Transaction().add(instruction);
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = payer;
+
+  return tx;
+}
+
 /**
  * Resolves a stake as success (returns funds to staker)
  */
@@ -290,4 +351,62 @@ export async function buildResolveFailureTx(
   tx.feePayer = payer;
 
   return tx;
+}
+
+function bnToNumber(value: anchor.BN | number): number {
+  return typeof value === "number" ? value : value.toNumber();
+}
+
+export async function fetchGoalAccount(goalHash: Buffer): Promise<GoalAccountData | null> {
+  const connection = getConnection();
+  const [goalPda] = deriveGoalPda(goalHash);
+  const accountInfo = await connection.getAccountInfo(goalPda);
+  if (!accountInfo) return null;
+
+  const decoded = ACCOUNTS_CODER.decode("Goal", accountInfo.data) as {
+    goal_hash: number[];
+    authority: PublicKey;
+    group_vault: PublicKey;
+    token_mint: PublicKey;
+    starts_on: anchor.BN;
+    ends_on: anchor.BN;
+  };
+
+  return {
+    goalPda,
+    goalHash: Buffer.from(decoded.goal_hash),
+    authority: decoded.authority,
+    groupVault: decoded.group_vault,
+    tokenMint: decoded.token_mint,
+    startsOn: bnToNumber(decoded.starts_on),
+    endsOn: bnToNumber(decoded.ends_on),
+  };
+}
+
+export async function fetchStakeAccount(
+  goalHash: Buffer,
+  staker: PublicKey
+): Promise<StakeAccountData | null> {
+  const connection = getConnection();
+  const [goalPda] = deriveGoalPda(goalHash);
+  const [stakePda] = deriveStakePda(goalPda, staker);
+  const accountInfo = await connection.getAccountInfo(stakePda);
+  if (!accountInfo) return null;
+
+  const decoded = ACCOUNTS_CODER.decode("Stake", accountInfo.data) as {
+    goal: PublicKey;
+    staker: PublicKey;
+    amount: anchor.BN;
+    status: number;
+    created_at: anchor.BN;
+  };
+
+  return {
+    stakePda,
+    goal: decoded.goal,
+    staker: decoded.staker,
+    amount: bnToNumber(decoded.amount),
+    status: decoded.status as StakeStatus,
+    createdAt: bnToNumber(decoded.created_at),
+  };
 }

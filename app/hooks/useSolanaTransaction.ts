@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Transaction, PublicKey } from "@solana/web3.js";
 import { useWallets } from "@privy-io/react-auth/solana";
 import { getConnection } from "@/lib/solana";
@@ -18,28 +18,42 @@ export function useSolanaTransaction() {
   const [transactionStatus, setTransactionStatus] = useState<TransactionStatus>({
     status: "idle",
   });
+  const connection = useMemo(() => getConnection(), []);
 
   const sendTransaction = useCallback(
     async (transaction: Transaction): Promise<string | null> => {
       try {
         setTransactionStatus({ status: "loading" });
 
-        // Get Solana wallet from Privy
         const solanaWallet = wallets[0];
-        if (!solanaWallet) {
-          throw new Error("No Solana wallet found. Privy Solana support may not be configured.");
+        if (!solanaWallet?.signTransaction) {
+          throw new Error("Privy Solana wallet not found or not initialized.");
         }
 
-        // For now, this is a placeholder - actual implementation depends on Privy's Solana support
-        // In practice, you would:
-        // 1. Serialize the transaction
-        // 2. Send to Privy API to sign
-        // 3. Broadcast signed transaction
-        
-        // This requires Privy's server-side SDK or a client-side method
-        throw new Error(
-          "Solana transaction signing via Privy requires additional setup. See documentation."
+        if (!transaction.recentBlockhash) {
+          const { blockhash } = await connection.getLatestBlockhash("confirmed");
+          transaction.recentBlockhash = blockhash;
+        }
+
+        if (!transaction.feePayer) {
+          if (!solanaWallet.address) {
+            throw new Error("Wallet address missing for fee payer assignment.");
+          }
+          transaction.feePayer = new PublicKey(solanaWallet.address);
+        }
+
+        const serializedTx = transaction.serialize({ requireAllSignatures: false });
+        const { signedTransaction } = await solanaWallet.signTransaction({
+          transaction: serializedTx,
+          chain: "solana:devnet",
+        });
+
+        const signature = await connection.sendRawTransaction(
+          new Uint8Array(signedTransaction)
         );
+
+        setTransactionStatus({ status: "success", signature });
+        return signature;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error sending transaction";
@@ -48,13 +62,12 @@ export function useSolanaTransaction() {
         return null;
       }
     },
-    [wallets]
+    [connection, wallets]
   );
 
   const confirmTransaction = useCallback(
     async (signature: string, maxRetries: number = 30): Promise<boolean> => {
       try {
-        const connection = getConnection();
         let confirmed = false;
         let retries = 0;
 
@@ -87,7 +100,7 @@ export function useSolanaTransaction() {
         return false;
       }
     },
-    []
+    [connection]
   );
 
   return {
