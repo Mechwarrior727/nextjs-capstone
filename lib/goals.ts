@@ -11,6 +11,7 @@ export async function createGoal(
         target_value: number;
         unit: string;
         period_days: number;
+        staking_opt_in?: boolean;
     }
 ) {
     try {
@@ -44,7 +45,7 @@ export async function createGoal(
                     period_days: data.period_days,
                     starts_on: startsOn.toISOString().split('T')[0],
                     ends_on: endsOn.toISOString().split('T')[0],
-                    staking_opt_in: false,
+                    staking_opt_in: data.staking_opt_in ?? false,
                 })
                 .select()
                 .single();
@@ -69,7 +70,7 @@ export async function createGoal(
                 await supabase.from('user_goals').insert(userGoals);
             }
 
-            return { success: true, goal };
+            return { success: true, data: goal };
         });
     } catch (error) {
         console.error('Unexpected error:', error);

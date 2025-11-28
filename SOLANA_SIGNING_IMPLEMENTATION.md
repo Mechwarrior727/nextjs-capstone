@@ -137,22 +137,18 @@ export async function buildOpenStakeTx(
 In Privy v3, you call signing methods directly on the wallet object:
 
 ```typescript
-// Step 1: Serialize the full transaction (not just the message)
-// requireAllSignatures: false because Privy will add the signature
-const serializedTx = tx.serialize({
-  requireAllSignatures: false,
-});
+// Use the custom hook which encapsulates the signing logic
+const { sendTransaction } = useSolanaTransaction();
 
-// Step 2: Sign with wallet.signTransaction()
-const { signedTransaction } = await solanaWallet.signTransaction({
-  transaction: serializedTx,  // Pass full transaction, not message
-  chain: 'solana:devnet',
-});
+// Step 1: Build the transaction
+const tx = await buildOpenStakeTx(...);
 
-// Step 3: Broadcast
-const signature = await connection.sendRawTransaction(
-  new Uint8Array(signedTransaction)
-);
+// Step 2: Send (handles signing and broadcasting internally)
+const signature = await sendTransaction(tx);
+
+if (signature) {
+  console.log("Transaction sent:", signature);
+}
 ```
 
 **Critical: Full Transaction vs Message**

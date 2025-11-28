@@ -2,6 +2,7 @@
 
 import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
 import {createSolanaRpc, createSolanaRpcSubscriptions} from '@solana/kit'; 
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana"; 
 import { useEffect } from "react";
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
@@ -80,7 +81,11 @@ export default function PrivyProviders({
             },
           },
         },
-        externalWallets: {},
+        externalWallets: {
+          solana: {
+            connectors: toSolanaWalletConnectors(),
+          },
+        },
       }}
     >
       <SyncUser />

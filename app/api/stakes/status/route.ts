@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
-import {
-  getConnection,
-  PROGRAM_ID,
-  deriveGoalPda,
-  deriveStakePda,
-} from "@/lib/solana";
+import { fetchStakeAccount } from "@/lib/solana";
 
 /**
  * GET /api/stakes/status?goalHash=<hex>&stakerAddress=<pubkey>
@@ -42,43 +37,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const connection = getConnection();
-    const [goalPda] = deriveGoalPda(goalHashBuffer);
-    const [stakePda] = deriveStakePda(goalPda, staker);
-
-    // Fetch stake account
-    const stakeAccount = await connection.getAccountInfo(stakePda);
-    if (!stakeAccount) {
+    const stake = await fetchStakeAccount(goalHashBuffer, staker);
+    if (!stake) {
       return NextResponse.json(
         { error: "Stake not found" },
         { status: 404 }
       );
     }
 
-    // Decode stake data (simplified)
-    // Structure: discriminator(8) + goal(32) + staker(32) + amount(8) + status(1) + created_at(8)
-    const data = stakeAccount.data;
-    if (data.length < 89) {
-      return NextResponse.json(
-        { error: "Invalid stake account data" },
-        { status: 400 }
-      );
-    }
-
-    const stakeStatus = ["Pending", "Success", "Failure", "Canceled"];
-    const statusCode = data[72];
-
-    const stake = {
-      address: stakePda.toString(),
-      goal: new PublicKey(data.slice(8, 40)).toString(),
-      staker: new PublicKey(data.slice(40, 72)).toString(),
-      amount: Number(data.readBigInt64LE(72)),
-      status: stakeStatus[statusCode] || "Unknown",
-      statusCode,
-      createdAt: Number(data.readBigInt64LE(80)),
+    const normalizedStake = {
+      address: stake.stakePda.toBase58(),
+      goal: stake.goal.toBase58(),
+      staker: stake.staker.toBase58(),
+      amount: stake.amount,
+      status: stake.status,
+      createdAt: stake.createdAt,
     };
 
-    return NextResponse.json({ stake });
+    return NextResponse.json({ stake: normalizedStake });
   } catch (error: any) {
     console.error("Get stake status error:", error);
     return NextResponse.json(
