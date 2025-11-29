@@ -9,7 +9,7 @@
     "db:types": "npx supabase gen types typescript --linked > lib/database.types.ts"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.29.0",
+    "@coral-xyz/anchor": "^0.31.0",
     "@privy-io/react-auth": "^3.1.0",
     "@privy-io/server-auth": "1.32.5",
     "@radix-ui/react-alert-dialog": "^1.1.15",

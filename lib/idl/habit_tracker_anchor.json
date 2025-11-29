@@ -9,11 +9,19 @@
   "instructions": [
     {
       "name": "cancel_before_start",
+      "discriminator": [
+        180,
+        233,
+        11,
+        38,
+        90,
+        126,
+        45,
+        141
+      ],
       "accounts": [
         {
           "name": "goal",
-          "isMut": false,
-          "isSigner": false,
           "pda": {
             "seeds": [
               {
@@ -38,8 +46,7 @@
         },
         {
           "name": "stake",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -65,29 +72,23 @@
         },
         {
           "name": "staker",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "staker_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "goal_vault_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "token_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -95,19 +96,26 @@
     },
     {
       "name": "deposit_stake",
+      "discriminator": [
+        160,
+        167,
+        9,
+        220,
+        74,
+        243,
+        228,
+        43
+      ],
       "accounts": [
         {
           "name": "goal",
-          "isMut": false,
-          "isSigner": false,
           "relations": [
             "stake"
           ]
         },
         {
           "name": "stake",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -133,29 +141,23 @@
         },
         {
           "name": "staker",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "staker_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "goal_vault_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "token_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -163,11 +165,20 @@
     },
     {
       "name": "init_goal",
+      "discriminator": [
+        214,
+        233,
+        13,
+        83,
+        203,
+        25,
+        9,
+        249
+      ],
       "accounts": [
         {
           "name": "goal",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -188,23 +199,17 @@
         },
         {
           "name": "authority",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
-          "name": "group_vault",
-          "isMut": false,
-          "isSigner": false
+          "name": "group_vault"
         },
         {
-          "name": "token_mint",
-          "isMut": false,
-          "isSigner": false
+          "name": "token_mint"
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -225,21 +230,34 @@
         {
           "name": "ends_on",
           "type": "i64"
+        },
+        {
+          "name": "resolver",
+          "type": {
+            "option": "pubkey"
+          }
         }
       ]
     },
     {
       "name": "open_stake",
+      "discriminator": [
+        136,
+        215,
+        163,
+        130,
+        234,
+        194,
+        229,
+        229
+      ],
       "accounts": [
         {
-          "name": "goal",
-          "isMut": false,
-          "isSigner": false
+          "name": "goal"
         },
         {
           "name": "stake",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -265,13 +283,11 @@
         },
         {
           "name": "staker",
-          "isMut": true,
-          "isSigner": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -284,11 +300,19 @@
     },
     {
       "name": "resolve_failure",
+      "discriminator": [
+        173,
+        82,
+        111,
+        131,
+        126,
+        40,
+        198,
+        74
+      ],
       "accounts": [
         {
           "name": "goal",
-          "isMut": false,
-          "isSigner": false,
           "pda": {
             "seeds": [
               {
@@ -313,13 +337,11 @@
         },
         {
           "name": "resolver",
-          "isMut": false,
-          "isSigner": true
+          "signer": true
         },
         {
           "name": "stake",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -346,24 +368,18 @@
         },
         {
           "name": "goal_vault_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "group_vault_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "token_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -371,11 +387,19 @@
     },
     {
       "name": "resolve_success",
+      "discriminator": [
+        164,
+        251,
+        118,
+        169,
+        186,
+        88,
+        234,
+        37
+      ],
       "accounts": [
         {
           "name": "goal",
-          "isMut": false,
-          "isSigner": false,
           "pda": {
             "seeds": [
               {
@@ -400,13 +424,11 @@
         },
         {
           "name": "resolver",
-          "isMut": false,
-          "isSigner": true
+          "signer": true
         },
         {
           "name": "stake",
-          "isMut": true,
-          "isSigner": false,
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -433,24 +455,18 @@
         },
         {
           "name": "goal_vault_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "staker_ata",
-          "isMut": true,
-          "isSigner": false
+          "writable": true
         },
         {
           "name": "token_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
-          "isMut": false,
-          "isSigner": false,
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -460,189 +476,108 @@
   "accounts": [
     {
       "name": "Goal",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "goal_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "authority",
-            "type": "publicKey"
-          },
-          {
-            "name": "group_vault",
-            "type": "publicKey"
-          },
-          {
-            "name": "token_mint",
-            "type": "publicKey"
-          },
-          {
-            "name": "starts_on",
-            "type": "i64"
-          },
-          {
-            "name": "ends_on",
-            "type": "i64"
-          }
-        ]
-      }
+      "discriminator": [
+        163,
+        66,
+        166,
+        245,
+        130,
+        131,
+        207,
+        26
+      ]
     },
     {
       "name": "Stake",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "goal",
-            "type": "publicKey"
-          },
-          {
-            "name": "staker",
-            "type": "publicKey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "status",
-            "type": "u8"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          }
-        ]
-      }
+      "discriminator": [
+        150,
+        197,
+        176,
+        29,
+        55,
+        132,
+        112,
+        149
+      ]
     }
   ],
   "events": [
     {
       "name": "GoalInitialized",
-      "fields": [
-        {
-          "name": "goal",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "authority",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "starts_on",
-          "type": "i64",
-          "index": false
-        },
-        {
-          "name": "ends_on",
-          "type": "i64",
-          "index": false
-        }
+      "discriminator": [
+        1,
+        73,
+        13,
+        109,
+        228,
+        1,
+        244,
+        99
       ]
     },
     {
       "name": "StakeCanceled",
-      "fields": [
-        {
-          "name": "stake",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "staker",
-          "type": "publicKey",
-          "index": false
-        }
+      "discriminator": [
+        171,
+        212,
+        169,
+        118,
+        180,
+        108,
+        239,
+        21
       ]
     },
     {
       "name": "StakeDeposited",
-      "fields": [
-        {
-          "name": "stake",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amount",
-          "type": "u64",
-          "index": false
-        }
+      "discriminator": [
+        69,
+        152,
+        144,
+        109,
+        232,
+        34,
+        225,
+        19
       ]
     },
     {
       "name": "StakeOpened",
-      "fields": [
-        {
-          "name": "stake",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "staker",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "goal",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amount",
-          "type": "u64",
-          "index": false
-        }
+      "discriminator": [
+        224,
+        249,
+        211,
+        227,
+        9,
+        83,
+        142,
+        188
       ]
     },
     {
       "name": "StakeResolvedFailure",
-      "fields": [
-        {
-          "name": "stake",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "group_vault",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amount",
-          "type": "u64",
-          "index": false
-        }
+      "discriminator": [
+        152,
+        81,
+        98,
+        71,
+        35,
+        115,
+        167,
+        37
       ]
     },
     {
       "name": "StakeResolvedSuccess",
-      "fields": [
-        {
-          "name": "stake",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "staker",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amount",
-          "type": "u64",
-          "index": false
-        }
+      "discriminator": [
+        96,
+        7,
+        134,
+        200,
+        9,
+        44,
+        106,
+        40
       ]
     }
   ],
@@ -669,28 +604,303 @@
     },
     {
       "code": 6004,
+      "name": "DepositWindowClosed",
+      "msg": "Deposit window has closed"
+    },
+    {
+      "code": 6005,
       "name": "AlreadyStarted",
       "msg": "Stake already started, cannot cancel"
     },
     {
-      "code": 6005,
+      "code": 6006,
       "name": "NotAuthorized",
       "msg": "Not authorized to perform this action"
     },
     {
-      "code": 6006,
+      "code": 6007,
+      "name": "StakeAlreadyFunded",
+      "msg": "Stake already funded"
+    },
+    {
+      "code": 6008,
+      "name": "StakeNotFunded",
+      "msg": "Stake must be funded first"
+    },
+    {
+      "code": 6009,
       "name": "TooEarly",
       "msg": "Goal has not ended yet"
     },
     {
-      "code": 6007,
+      "code": 6010,
       "name": "MathOverflow",
       "msg": "Math overflow"
     },
     {
-      "code": 6008,
+      "code": 6011,
       "name": "MissingFunds",
       "msg": "Stake PDA does not hold enough funds"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidTokenMint",
+      "msg": "Token mint must use 6 decimals"
+    },
+    {
+      "code": 6013,
+      "name": "GroupVaultMintMismatch",
+      "msg": "Group vault token account mint mismatch"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidGoalVault",
+      "msg": "Goal vault ATA must be owned by the goal PDA"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidGroupVault",
+      "msg": "Group vault ATA does not match the configured vault"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidStakerAta",
+      "msg": "Staker ATA does not belong to recorded staker"
+    }
+  ],
+  "types": [
+    {
+      "name": "Goal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "goal_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "resolver",
+            "type": "pubkey"
+          },
+          {
+            "name": "group_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "starts_on",
+            "type": "i64"
+          },
+          {
+            "name": "ends_on",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GoalInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "goal",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "resolver",
+            "type": "pubkey"
+          },
+          {
+            "name": "group_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "starts_on",
+            "type": "i64"
+          },
+          {
+            "name": "ends_on",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Stake",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "goal",
+            "type": "pubkey"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeCanceled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "refunded_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "funded_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "goal",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeResolvedFailure",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "group_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "resolver",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "resolved_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeResolvedSuccess",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stake",
+            "type": "pubkey"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "resolver",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "resolved_at",
+            "type": "i64"
+          }
+        ]
+      }
     }
   ]
 }

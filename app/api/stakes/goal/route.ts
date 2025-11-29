@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PublicKey } from "@solana/web3.js";
-import { getConnection, PROGRAM_ID, deriveGoalPda } from "@/lib/solana";
+import { fetchGoalAccount } from "@/lib/solana";
 
 /**
  * GET /api/stakes/goal?goalHash=<hex>
@@ -25,40 +24,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const connection = getConnection();
-    const [goalPda] = deriveGoalPda(goalHashBuffer);
-
-    // Fetch goal account
-    const goalAccount = await connection.getAccountInfo(goalPda);
-    if (!goalAccount) {
+    const goal = await fetchGoalAccount(goalHashBuffer);
+    if (!goal) {
       return NextResponse.json(
         { error: "Goal not found" },
         { status: 404 }
       );
     }
 
-    // Decode goal data (simplified - would use Anchor IDL in production)
-    // Structure: discriminator(8) + goal_hash(32) + authority(32) + group_vault(32) + token_mint(32) + starts_on(8) + ends_on(8)
-    const data = goalAccount.data;
-    if (data.length < 152) {
-      return NextResponse.json(
-        { error: "Invalid goal account data" },
-        { status: 400 }
-      );
-    }
-
-    const goal = {
-      address: goalPda.toString(),
-      goalHash: data.slice(8, 40).toString("hex"),
-      authority: new PublicKey(data.slice(40, 72)).toString(),
-      groupVault: new PublicKey(data.slice(72, 104)).toString(),
-      tokenMint: new PublicKey(data.slice(104, 136)).toString(),
-      startsOn: Number(data.readBigInt64LE(136)),
-      endsOn: Number(data.readBigInt64LE(144)),
-      now: Math.floor(Date.now() / 1000),
+    const normalizedGoal = {
+      address: goal.goalPda.toBase58(),
+      goalHash: goal.goalHash.toString("hex"),
+      authority: goal.authority.toBase58(),
+      resolver: goal.resolver.toBase58(),
+      groupVault: goal.groupVault.toBase58(),
+      tokenMint: goal.tokenMint.toBase58(),
+      startsOn: goal.startsOn,
+      endsOn: goal.endsOn,
     };
 
-    return NextResponse.json({ goal });
+    return NextResponse.json({ goal: normalizedGoal });
   } catch (error: any) {
     console.error("Get goal error:", error);
     return NextResponse.json(
