@@ -7,6 +7,32 @@ interface GoogleFitData {
   totalCalories: number;
 }
 
+// DRY FIX — defining constant once
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Time validation
+function validateTimes(
+  start: any,
+  end: any
+): { start: number; end: number } {
+  const s = Number(start);
+  const e = Number(end);
+
+  if (!Number.isFinite(s) || !Number.isFinite(e)) {
+    throw new Error("Invalid start or end time: must be numeric");
+  }
+
+  if (s < 0 || e < 0) {
+    throw new Error("Invalid start or end time: timestamps must be positive");
+  }
+
+  if (s > e) {
+    throw new Error("startTimeMillis must be <= endTimeMillis");
+  }
+
+  return { start: s, end: e };
+}
+
 async function fetchGoogleFitData(
   accessToken: string,
   startTimeMillis: number,
@@ -17,22 +43,25 @@ async function fetchGoogleFitData(
     endTimeMillis,
   });
 
-  const res = await fetch("https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      aggregateBy: [
-        { dataTypeName: "com.google.step_count.delta" },
-        { dataTypeName: "com.google.calories.expended" },
-      ],
-      bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 },
-      startTimeMillis,
-      endTimeMillis,
-    }),
-  });
+  const res = await fetch(
+    "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        aggregateBy: [
+          { dataTypeName: "com.google.step_count.delta" },
+          { dataTypeName: "com.google.calories.expended" },
+        ],
+        bucketByTime: { durationMillis: ONE_DAY_MS }, // DRY FIX
+        startTimeMillis,
+        endTimeMillis,
+      }),
+    }
+  );
 
   if (!res.ok) {
     const errText = await res.text();
@@ -66,12 +95,14 @@ async function fetchGoogleFitData(
       }
     }
 
-    const date = new Date(Number(b.startTimeMillis)).toISOString().slice(0, 10);
+    const date = new Date(Number(b.startTimeMillis))
+      .toISOString()
+      .slice(0, 10);
     bucketMap[date] = { steps, calories };
   }
 
-  const oneDay = 24 * 60 * 60 * 1000;
-  for (let t = startTimeMillis; t <= endTimeMillis; t += oneDay) {
+  // DRY FIX – use shared ONE_DAY_MS
+  for (let t = startTimeMillis; t <= endTimeMillis; t += ONE_DAY_MS) {
     const date = new Date(t).toISOString().slice(0, 10);
     days.push({
       date,
@@ -94,28 +125,43 @@ async function fetchGoogleFitData(
 
 export async function POST(req: NextRequest) {
   try {
-    const { accessToken, startTimeMillis, endTimeMillis } = await req.json();
+    let { accessToken, startTimeMillis, endTimeMillis } = await req.json();
 
     if (!accessToken) {
-      return NextResponse.json({ error: "Missing accessToken" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing accessToken" },
+        { status: 400 }
+      );
+    }
+
+    // H-severity fix — validate timestamps
+    try {
+      ({ start: startTimeMillis, end: endTimeMillis } = validateTimes(
+        startTimeMillis,
+        endTimeMillis
+      ));
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
     }
 
     const { user } = await requirePrivySession(req);
+
     const { days, totalSteps, totalCalories } = await fetchGoogleFitData(
       accessToken,
       startTimeMillis,
       endTimeMillis
     );
 
- 
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const host = req.headers.get("host");
     const baseUrl = `${protocol}://${host}`;
 
-    console.log("[fit] Upserting health data via:", `${baseUrl}/api/db/upsert-health`);
-    
+    console.log(
+      "[fit] Upserting health data via:",
+      `${baseUrl}/api/db/upsert-health`
+    );
 
-    const safeDays = days.map(d => ({
+    const safeDays = days.map((d) => ({
       date: d.date,
       steps: Math.round(d.steps),
       calories: Math.round(d.calories),
@@ -136,8 +182,9 @@ export async function POST(req: NextRequest) {
       throw new Error(result.error || "Upsert route failed");
     }
 
-    console.log(`[fit] Synced ${result.inserted} days of data for user ${user.id}`);
-
+    console.log(
+      `[fit] Synced ${result.inserted} days of data for user ${user.id}`
+    );
 
     return NextResponse.json({
       success: true,
@@ -147,7 +194,10 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[fit] Backend error:", err);
     return NextResponse.json(
-      { error: "Failed to fetch or sync Google Fit data", details: err.message },
+      {
+        error: "Failed to fetch or sync Google Fit data",
+        details: err.message,
+      },
       { status: 500 }
     );
   }
