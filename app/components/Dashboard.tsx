@@ -21,6 +21,7 @@ interface DashboardProps {
     error: any;
     setError: any;
     fitData: any;
+    login: any;
 }
 
 export default function Dashboard({
@@ -36,6 +37,7 @@ export default function Dashboard({
     error,
     setError,
     fitData,
+    login,
 }: DashboardProps) {
     const [groups, setGroups] = useState<GroupMemberWithGroup[]>([]);
     const [loadingGroups, setLoadingGroups] = useState(true);
@@ -70,31 +72,59 @@ export default function Dashboard({
 
     if (!authenticated) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-black px-4">
-                <div className="text-center max-w-2xl">
-                    <h1 className="text-5xl font-bold text-black dark:text-white mb-4">CleverNameAboutPeerPressure</h1>
-                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-                        Compete with friends. Achieve your goals. Steal their money.
-                    </p>
-                    <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800">
-                        <h2 className="text-2xl font-bold text-black dark:text-white mb-4">How it works</h2>
-                        <div className="space-y-4 text-left text-gray-700 dark:text-gray-300">
-                            <div className="flex gap-3">
-                                <span className="text-2xl">1️⃣</span>
-                                <p>Create or join a group with friends</p>
+            <div className="min-h-screen bg-black">
+                {/* Hero Section */}
+                <div className="relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/20 to-yellow-900/20 z-0" />
+                    <div className="max-w-6xl mx-auto px-6 pt-32 pb-20 relative z-10">
+                        <div className="max-w-3xl">
+                            <img src="/logo.png" alt="Logo" className="w-32 h-32 mb-8" />
+                            <h1 className="text-6xl font-bold text-white mb-6 leading-tight">
+                                Turn Peer Pressure into <span className="text-yellow-500">Progress</span>
+                            </h1>
+                            <p className="text-xl text-gray-300 mb-8 leading-relaxed max-w-2xl">
+                                The social accountability platform where you bet on your goals.
+                                Join groups, stake money, and prove your progress with Google Fit integration.
+                            </p>
+                            <button
+                                onClick={() => login({ method: "google" })}
+                                className="bg-yellow-600 hover:bg-yellow-700 text-black text-lg font-bold py-4 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg hover:shadow-yellow-500/25"
+                            >
+                                Get Started with Google
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Features Grid */}
+                <div className="max-w-6xl mx-auto px-6 py-20">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="bg-gray-900/50 p-8 rounded-3xl border border-gray-800 hover:border-yellow-500/50 transition-colors">
+                            <div className="w-12 h-12 bg-yellow-900/30 rounded-2xl flex items-center justify-center mb-6">
+                                <Users className="text-yellow-500" size={24} />
                             </div>
-                            <div className="flex gap-3">
-                                <span className="text-2xl">2️⃣</span>
-                                <p>Track progress towards a common goal</p>
+                            <h3 className="text-xl font-bold text-white mb-3">Social Accountability</h3>
+                            <p className="text-gray-400">
+                                Create groups with friends and keep each other on track. The shame of losing is a powerful motivator.
+                            </p>
+                        </div>
+                        <div className="bg-gray-900/50 p-8 rounded-3xl border border-gray-800 hover:border-yellow-500/50 transition-colors">
+                            <div className="w-12 h-12 bg-yellow-900/30 rounded-2xl flex items-center justify-center mb-6">
+                                <DollarSign className="text-yellow-500" size={24} />
                             </div>
-                            <div className="flex gap-3">
-                                <span className="text-2xl">3️⃣</span>
-                                <p>???</p>
+                            <h3 className="text-xl font-bold text-white mb-3">Stake Your Cash</h3>
+                            <p className="text-gray-400">
+                                Put your money where your mouth is. Deposit crypto into an escrow that only releases when you hit your goals.
+                            </p>
+                        </div>
+                        <div className="bg-gray-900/50 p-8 rounded-3xl border border-gray-800 hover:border-yellow-500/50 transition-colors">
+                            <div className="w-12 h-12 bg-yellow-900/30 rounded-2xl flex items-center justify-center mb-6">
+                                <TrendingUp className="text-yellow-500" size={24} />
                             </div>
-                            <div className="flex gap-3">
-                                <span className="text-2xl">4️⃣</span>
-                                <p>Profit</p>
-                            </div>
+                            <h3 className="text-xl font-bold text-white mb-3">Verified Progress</h3>
+                            <p className="text-gray-400">
+                                Automatically syncs with Google Fit to verify your steps and activity. No cheating allowed.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -123,24 +153,24 @@ export default function Dashboard({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-3 mb-2">
-                            <Users className="text-violet-600 dark:text-violet-400" size={24} />
-                            <span className="text-gray-600 dark:text-gray-400 text-sm">Active Groups</span>
+                            <Users className="text-yellow-500" size={24} />
+                            <span className="text-gray-400 text-sm">Active Groups</span>
                         </div>
                         <p className="text-3xl font-bold text-black dark:text-white">{groups.length}</p>
                     </div>
 
                     <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-3 mb-2">
-                            <DollarSign className="text-green-600 dark:text-green-400" size={24} />
-                            <span className="text-gray-600 dark:text-gray-400 text-sm">Total at Stake</span>
+                            <DollarSign className="text-yellow-500" size={24} />
+                            <span className="text-gray-400 text-sm">Total at Stake</span>
                         </div>
                         <p className="text-3xl font-bold text-black dark:text-white">$0</p>
                     </div>
 
                     <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-3 mb-2">
-                            <TrendingUp className="text-yellow-600 dark:text-yellow-400" size={24} />
-                            <span className="text-gray-600 dark:text-gray-400 text-sm">Best Streak</span>
+                            <TrendingUp className="text-yellow-500" size={24} />
+                            <span className="text-gray-400 text-sm">Best Streak</span>
                         </div>
                         <p className="text-3xl font-bold text-black dark:text-white">0 days</p>
                     </div>
@@ -177,7 +207,7 @@ export default function Dashboard({
                             <Link
                                 key={membership.group_id}
                                 href={`/groups/${membership.group_id}`}
-                                className="block bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 hover:border-violet-500 dark:hover:border-violet-500 transition-colors"
+                                className="block bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-yellow-500 transition-colors"
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">
@@ -186,7 +216,7 @@ export default function Dashboard({
                                                 {membership.groups.name}
                                             </h3>
                                             {membership.role === 'owner' && (
-                                                <span className="text-xs bg-violet-600 text-white px-2 py-1 rounded-full">
+                                                <span className="text-xs bg-yellow-600 text-black font-bold px-2 py-1 rounded-full">
                                                     Owner
                                                 </span>
                                             )}

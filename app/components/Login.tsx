@@ -70,10 +70,10 @@ export default function Login({ ready, authenticated, login, logout, user, linke
                 {ready && authenticated ? (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
-                                <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-violet-400 transition-all">
+                            <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                                <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-yellow-400 transition-all">
                                     <AvatarImage src={user?.google?.picture || ""} alt={displayName} />
-                                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white font-semibold">
+                                    <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-black font-semibold">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
@@ -84,7 +84,7 @@ export default function Login({ ready, authenticated, login, logout, user, linke
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-10 w-10">
                                         <AvatarImage src={user?.google?.picture || ""} alt={displayName} />
-                                        <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-sm font-semibold">
+                                        <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-black text-sm font-semibold">
                                             {initials}
                                         </AvatarFallback>
                                     </Avatar>
@@ -116,7 +116,7 @@ export default function Login({ ready, authenticated, login, logout, user, linke
                                             e.stopPropagation();
                                             setTheme(isDark ? "light" : "dark");
                                         }}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDark ? "bg-violet-600" : "bg-gray-300"
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDark ? "bg-yellow-600" : "bg-gray-300"
                                             }`}
                                     >
                                         <span
@@ -139,7 +139,7 @@ export default function Login({ ready, authenticated, login, logout, user, linke
                 ) : (
                     <button
                         onClick={() => login({ method: "google" })}
-                        className="rounded-full bg-violet-600 hover:bg-violet-700 py-2 px-4 text-white transition-colors"
+                        className="rounded-full bg-yellow-600 hover:bg-yellow-700 py-2 px-4 text-black font-bold transition-colors"
                     >
                         Login
                     </button>

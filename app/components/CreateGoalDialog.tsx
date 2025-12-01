@@ -36,14 +36,14 @@ type ViewState = 'form' | 'success' | 'error';
 export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: CreateGoalDialogProps) {
     const [open, setOpen] = useState(false);
     const [view, setView] = useState<ViewState>('form');
-    
+
     // Form State
     const [title, setTitle] = useState('');
     const [targetValue, setTargetValue] = useState('10000');
     const [periodDays, setPeriodDays] = useState('7');
     const [stakeAmount, setStakeAmount] = useState('0');
     const [isTestMode, setIsTestMode] = useState(false);
-    
+
     // Status State
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -124,7 +124,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
             // 2. If stake amount > 0, initialize on-chain goal and stake
             if (stakeNum > 0 && authenticated) {
                 setLoadingMessage('Initializing & Staking on-chain...');
-                
+
                 // Generate 32-byte hash from goal ID
                 const crypto = await import('crypto');
                 const goalHash = crypto.createHash('sha256').update(goalId).digest();
@@ -132,18 +132,18 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                 // Duration in minutes = periodDays * 24 * 60
                 // If Test Mode is enabled, use 1 minute duration
                 const durationMinutes = isTestMode ? 1 : periodNum * 24 * 60;
-                
+
                 // Convert stake amount to raw units (USDC has 6 decimals)
                 const rawAmount = Math.floor(stakeNum * 1_000_000);
 
                 // Execute bundled transaction
                 const signature = await createGoalAndStake(
-                    goalHash, 
+                    goalHash,
                     1, // 1 minute start delay
-                    durationMinutes, 
+                    durationMinutes,
                     rawAmount
                 );
-                
+
                 if (signature) {
                     setTxSignature(signature);
                 }
@@ -157,16 +157,16 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
             console.error('Goal creation error:', err);
             const message = err.message || 'Failed to create goal';
             setError(message);
-            
+
             // Check for insufficient funds
             if (
-                message.includes('insufficient funds') || 
-                message.includes('0x1') || 
+                message.includes('insufficient funds') ||
+                message.includes('0x1') ||
                 JSON.stringify(err).includes('insufficient funds')
             ) {
                 setIsInsufficientFunds(true);
             }
-            
+
             setView('error');
         } finally {
             setLoading(false);
@@ -189,16 +189,16 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                             Staked Amount
                         </p>
-                        <div className="flex items-center justify-center gap-2 text-lg font-bold text-violet-600 dark:text-violet-400">
+                        <div className="flex items-center justify-center gap-2 text-lg font-bold text-yellow-600 dark:text-yellow-400">
                             <Coins size={20} />
                             {stakeAmount} USDC
                         </div>
                         {txSignature && (
-                            <a 
+                            <a
                                 href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-2 hover:underline"
+                                className="inline-flex items-center gap-1 text-xs text-yellow-500 hover:text-yellow-600 mt-2 hover:underline"
                             >
                                 View Transaction <ExternalLink size={10} />
                             </a>
@@ -206,7 +206,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                     </div>
                 )}
             </div>
-            <Button onClick={handleClose} className="w-full mt-4 bg-violet-600 hover:bg-violet-700">
+            <Button onClick={handleClose} className="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 text-black font-bold">
                 Done
             </Button>
         </div>
@@ -222,7 +222,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                 <p className="text-sm text-red-600 dark:text-red-400 max-w-[300px] mx-auto break-words">
                     {error}
                 </p>
-                
+
                 {isInsufficientFunds && (
                     <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-800 text-left">
                         <div className="flex items-start gap-3">
@@ -235,17 +235,17 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                                     You need Devnet SOL (for fees) and Devnet USDC (for staking) to create this goal.
                                 </p>
                                 <div className="flex flex-col gap-1 mt-2">
-                                    <a 
-                                        href="https://faucet.solana.com/" 
-                                        target="_blank" 
+                                    <a
+                                        href="https://faucet.solana.com/"
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                                     >
                                         Get Devnet SOL <ExternalLink size={10} />
                                     </a>
-                                    <a 
-                                        href="https://spl-token-faucet.com/?token-name=USDC-Dev" 
-                                        target="_blank" 
+                                    <a
+                                        href="https://spl-token-faucet.com/?token-name=USDC-Dev"
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                                     >
@@ -261,7 +261,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                 <Button variant="outline" onClick={handleClose} className="flex-1">
                     Close
                 </Button>
-                <Button onClick={() => setView('form')} className="flex-1 bg-violet-600 hover:bg-violet-700">
+                <Button onClick={() => setView('form')} className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-black font-bold">
                     Try Again
                 </Button>
             </div>
@@ -271,7 +271,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-violet-600 hover:bg-violet-700 text-white font-semibold flex items-center gap-2">
+                <Button className="bg-yellow-600 hover:bg-yellow-700 text-black font-semibold flex items-center gap-2">
                     <Plus size={20} />
                     Create Goal
                 </Button>
@@ -373,7 +373,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                                     id="testMode"
                                     checked={isTestMode}
                                     onChange={(e) => setIsTestMode(e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                    className="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
                                 />
                                 <Label htmlFor="testMode" className="text-sm text-gray-600 dark:text-gray-400">
                                     Test Mode (1 minute duration)
@@ -392,7 +392,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                             <Button
                                 type="submit"
                                 disabled={loading || !title.trim()}
-                                className="bg-violet-600 hover:bg-violet-700"
+                                className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
                             >
                                 {loading ? (
                                     <>

@@ -45,7 +45,7 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
     const initializeChat = async () => {
         setLoading(true);
         const result = await getOrCreateGroupChatRoom(groupId, userId);
-        
+
         if (result.success && result.room) {
             setRoomId(result.room.id);
         }
@@ -63,7 +63,7 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!newMessage.trim() || !roomId || sending) return;
 
         setSending(true);
@@ -95,7 +95,7 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
             {/* Chat Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 z-40 bg-violet-600 hover:bg-violet-700 text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
+                className="fixed bottom-6 right-6 z-40 bg-yellow-600 hover:bg-yellow-700 text-black rounded-full p-4 shadow-lg transition-all hover:scale-110"
                 aria-label="Toggle chat"
             >
                 {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
@@ -103,9 +103,8 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
 
             {/* Chat Panel */}
             <div
-                className={`fixed bottom-0 right-0 z-30 w-full sm:w-96 h-[500px] bg-white dark:bg-gray-950 border-l border-t border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out ${
-                    isOpen ? 'translate-x-0' : 'translate-x-full'
-                }`}
+                className={`fixed bottom-0 right-0 z-30 w-full sm:w-96 h-[500px] bg-white dark:bg-gray-950 border-l border-t border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+                    }`}
             >
                 {loading ? (
                     <div className="flex items-center justify-center h-full">
@@ -114,7 +113,7 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
                 ) : (
                     <div className="flex flex-col h-full">
                         {/* Chat Header */}
-                        <div className="bg-violet-600 text-white px-4 py-3 font-semibold">
+                        <div className="bg-yellow-600 text-black px-4 py-3 font-bold">
                             Group Chat
                         </div>
 
@@ -133,11 +132,10 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
                                             className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                                                    isOwn
-                                                        ? 'bg-violet-600 text-white'
+                                                className={`max-w-[75%] rounded-2xl px-4 py-2 ${isOwn
+                                                        ? 'bg-yellow-600 text-black font-medium'
                                                         : 'bg-white dark:bg-gray-900 text-black dark:text-white border border-gray-200 dark:border-gray-800'
-                                                }`}
+                                                    }`}
                                             >
                                                 {!isOwn && (
                                                     <div className="text-xs font-semibold mb-1 opacity-75">
@@ -170,7 +168,7 @@ export default function GroupChat({ groupId, userId, userName }: GroupChatProps)
                                 <Button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="bg-violet-600 hover:bg-violet-700"
+                                    className="bg-yellow-600 hover:bg-yellow-700 text-black"
                                 >
                                     {sending ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
