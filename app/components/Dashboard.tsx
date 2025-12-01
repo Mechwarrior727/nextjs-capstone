@@ -207,7 +207,7 @@ export default function Dashboard({
                             <Link
                                 key={membership.group_id}
                                 href={`/groups/${membership.group_id}`}
-                                className="block bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-yellow-500 transition-colors"
+                                className="block bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 hover:border-yellow-500 transition-colors"
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">

@@ -81,7 +81,7 @@ export default function GoalCard({ goal }: GoalCardProps) {
 
     const getStatusColor = () => {
         const now = new Date();
-        const endDate = new Date(goal.ends_on);
+        const endDate = goalAccount ? new Date(goalAccount.endsOn * 1000) : new Date(goal.ends_on);
 
         if (now > endDate) return 'text-gray-500';
         return 'text-yellow-600 dark:text-yellow-400';
@@ -89,13 +89,14 @@ export default function GoalCard({ goal }: GoalCardProps) {
 
     const getStatusText = () => {
         const now = new Date();
-        const endDate = new Date(goal.ends_on);
+        const endDate = goalAccount ? new Date(goalAccount.endsOn * 1000) : new Date(goal.ends_on);
         const startDate = new Date(goal.starts_on);
 
         if (now > endDate) return 'Completed';
         if (now < startDate) return 'Upcoming';
 
         const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 0) return 'Ending soon';
         return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
     };
 
@@ -108,7 +109,7 @@ export default function GoalCard({ goal }: GoalCardProps) {
     };
 
     const creatorName = goal.users?.display_name || goal.users?.email || 'Unknown';
-    const isEnded = new Date() > new Date(goal.ends_on);
+    const isEnded = new Date() > (goalAccount ? new Date(goalAccount.endsOn * 1000) : new Date(goal.ends_on));
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800">
