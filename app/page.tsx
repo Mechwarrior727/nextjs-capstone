@@ -37,6 +37,7 @@ export default function Home() {
         error={error}
         setError={setError}
         fitData={fitData}
+        login={login}
       />
     </>
   );

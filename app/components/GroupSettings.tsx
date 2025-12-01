@@ -180,7 +180,7 @@ export default function GroupSettings({ group, onUpdate, userId }: GroupSettings
                         <Button
                             type="submit"
                             disabled={loading || !hasChanges}
-                            className="bg-violet-600 hover:bg-violet-700"
+                            className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
                         >
                             {loading ? (
                                 <>

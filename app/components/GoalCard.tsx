@@ -22,12 +22,12 @@ interface GoalCardProps {
 export default function GoalCard({ goal }: GoalCardProps) {
     const [progressData, setProgressData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    
+
     // On-chain state
     const [goalAccount, setGoalAccount] = useState<GoalAccountData | null>(null);
     const [stakeAccount, setStakeAccount] = useState<StakeAccountData | null>(null);
     const [onChainLoading, setOnChainLoading] = useState(false);
-    
+
     const { resolveSuccess, status: actionStatus, isLoading: isActionLoading } = useEscrowActions();
     const { authenticated, user } = usePrivy();
     const { wallets } = useWallets();
@@ -51,15 +51,15 @@ export default function GoalCard({ goal }: GoalCardProps) {
 
     const fetchOnChainData = useCallback(async () => {
         if (!solanaWallet?.address) return;
-        
+
         setOnChainLoading(true);
         try {
             const crypto = await import('crypto');
             const goalHash = crypto.createHash('sha256').update(goal.id).digest();
-            
+
             const goalAcct = await fetchGoalAccount(goalHash);
             setGoalAccount(goalAcct);
-            
+
             if (goalAcct) {
                 const staker = new PublicKey(solanaWallet.address);
                 const stakeAcct = await fetchStakeAccount(goalHash, staker);
@@ -84,7 +84,7 @@ export default function GoalCard({ goal }: GoalCardProps) {
         const endDate = new Date(goal.ends_on);
 
         if (now > endDate) return 'text-gray-500';
-        return 'text-green-600 dark:text-green-400';
+        return 'text-yellow-600 dark:text-yellow-400';
     };
 
     const getStatusText = () => {
@@ -153,7 +153,7 @@ export default function GoalCard({ goal }: GoalCardProps) {
                         </div>
                         {onChainLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
                     </div>
-                    
+
                     {stakeAccount ? (
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
@@ -162,24 +162,23 @@ export default function GoalCard({ goal }: GoalCardProps) {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                                <span className={`font-medium ${
-                                    stakeAccount.status === StakeStatus.Funded ? 'text-blue-600' :
-                                    stakeAccount.status === StakeStatus.Success ? 'text-green-600' :
-                                    'text-gray-600'
-                                }`}>
+                                <span className={`font-medium ${stakeAccount.status === StakeStatus.Funded ? 'text-yellow-600' :
+                                        stakeAccount.status === StakeStatus.Success ? 'text-green-600' :
+                                            'text-gray-600'
+                                    }`}>
                                     {stakeAccount.status === StakeStatus.Pending ? 'Pending' :
-                                     stakeAccount.status === StakeStatus.Funded ? 'Active' :
-                                     stakeAccount.status === StakeStatus.Success ? 'Returned' :
-                                     stakeAccount.status === StakeStatus.Failure ? 'Forfeited' : 'Canceled'}
+                                        stakeAccount.status === StakeStatus.Funded ? 'Active' :
+                                            stakeAccount.status === StakeStatus.Success ? 'Returned' :
+                                                stakeAccount.status === StakeStatus.Failure ? 'Forfeited' : 'Canceled'}
                                 </span>
                             </div>
-                            
+
                             {/* Claim Button */}
                             {isEnded && stakeAccount.status === StakeStatus.Funded && (
                                 <button
                                     onClick={handleClaim}
                                     disabled={isActionLoading}
-                                    className="w-full mt-2 py-1.5 px-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors flex items-center justify-center gap-2"
+                                    className="w-full mt-2 py-1.5 px-3 bg-yellow-600 hover:bg-yellow-700 text-black text-sm font-bold rounded transition-colors flex items-center justify-center gap-2"
                                 >
                                     {isActionLoading ? <Loader2 size={14} className="animate-spin" /> : null}
                                     Claim Refund
@@ -221,7 +220,7 @@ export default function GoalCard({ goal }: GoalCardProps) {
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
                                 <div
-                                    className="bg-violet-600 h-2 rounded-full transition-all duration-300"
+                                    className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
                                     style={{ width: `${Math.min(userProgress.percentage, 100)}%` }}
                                 />
                             </div>

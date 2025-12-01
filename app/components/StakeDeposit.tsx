@@ -121,7 +121,7 @@ export function StakeDeposit({ goalHash, groupVaultAddress }: StakeDepositProps)
       )}
 
       {transactionStatus.status === "loading" && (
-        <div className="rounded bg-blue-50 p-2 text-sm text-blue-700">
+        <div className="rounded bg-yellow-50 p-2 text-sm text-yellow-700">
           Processing transaction...
         </div>
       )}

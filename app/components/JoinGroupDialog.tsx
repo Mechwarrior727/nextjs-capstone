@@ -48,7 +48,7 @@ export default function JoinGroupDialog({ userId, onGroupJoined }: JoinGroupDial
             setInviteCode('');
             setOpen(false);
             onGroupJoined?.();
-            
+
             // Navigate to the group page
             router.push(`/groups/${result.group.id}`);
         } else {
@@ -59,9 +59,9 @@ export default function JoinGroupDialog({ userId, onGroupJoined }: JoinGroupDial
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button 
+                <Button
                     variant="outline"
-                    className="border-violet-600 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950 font-semibold flex items-center gap-2"
+                    className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950 font-semibold flex items-center gap-2"
                 >
                     <UserPlus size={20} />
                     Join Group
@@ -106,7 +106,7 @@ export default function JoinGroupDialog({ userId, onGroupJoined }: JoinGroupDial
                         <Button
                             type="submit"
                             disabled={loading || !inviteCode.trim()}
-                            className="bg-violet-600 hover:bg-violet-700"
+                            className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
                         >
                             {loading ? (
                                 <>

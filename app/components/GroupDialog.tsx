@@ -54,7 +54,7 @@ export default function CreateGroupDialog({ userId, onGroupCreated }: CreateGrou
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-violet-600 hover:bg-violet-700 text-white font-semibold flex items-center gap-2">
+                <Button className="bg-yellow-600 hover:bg-yellow-700 text-black font-semibold flex items-center gap-2">
                     <Plus size={20} />
                     Create Group
                 </Button>
@@ -95,7 +95,7 @@ export default function CreateGroupDialog({ userId, onGroupCreated }: CreateGrou
                         <Button
                             type="submit"
                             disabled={loading || !groupName.trim()}
-                            className="bg-violet-600 hover:bg-violet-700"
+                            className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
                         >
                             {loading ? (
                                 <>
