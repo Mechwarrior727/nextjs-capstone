@@ -238,6 +238,17 @@ export default function GroupDetailPage() {
                 userId={user?.id || ''}
                 userName={user?.google?.name || user?.google?.email || 'User'}
             />
+
+            {/* Escrow Test Link */}
+            <div className="max-w-6xl mx-auto px-6 pb-8 text-center">
+                <Link
+                    href="/escrow-test"
+                    className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-violet-600 dark:text-gray-400 dark:hover:text-violet-400 transition-colors"
+                >
+                    <Target size={16} />
+                    Test Escrow Dashboard
+                </Link>
+            </div>
         </div>
     );
 }

@@ -434,7 +434,7 @@ export function EscrowTestButton() {
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
               placeholder="Enter unique string or 32-byte hex"
-              className="font-mono text-sm"
+              className="font-mono text-sm text-gray-900"
             />
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -444,6 +444,7 @@ export function EscrowTestButton() {
                   value={startDelayMinutes}
                   onChange={(e) => setStartDelayMinutes(e.target.value)}
                   min="1"
+                  className="text-gray-900"
                 />
               </div>
               <div>
@@ -453,6 +454,7 @@ export function EscrowTestButton() {
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(e.target.value)}
                   min="1"
+                  className="text-gray-900"
                 />
               </div>
             </div>
@@ -462,7 +464,7 @@ export function EscrowTestButton() {
                 value={resolverInput}
                 onChange={(e) => setResolverInput(e.target.value)}
                 placeholder="Defaults to you (authority)"
-                className="font-mono text-xs"
+                className="font-mono text-xs text-gray-900"
               />
             </div>
             <Button
@@ -488,6 +490,7 @@ export function EscrowTestButton() {
                 onChange={(e) => setStakeAmount(e.target.value)}
                 min="0.000001"
                 step="1"
+                className="text-gray-900"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">

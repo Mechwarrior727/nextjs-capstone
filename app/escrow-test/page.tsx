@@ -29,6 +29,16 @@ export default function EscrowTestPage() {
       <div className="mx-auto max-w-2xl px-4 py-12">
         <div className="mb-8 flex items-center justify-between">
           <div>
+            <div className="mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/")}
+                className="text-gray-600 hover:text-gray-900 -ml-2"
+              >
+                ← Back to Home
+              </Button>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">
               Habit Tracker Escrow
             </h1>
