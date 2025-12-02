@@ -32,6 +32,7 @@ interface CreateGoalDialogProps {
 }
 
 type ViewState = 'form' | 'success' | 'error';
+type MetricType = 'steps' | 'calories';
 
 export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: CreateGoalDialogProps) {
     const [open, setOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
 
     // Form State
     const [title, setTitle] = useState('');
+    const [metricType, setMetricType] = useState<MetricType>('steps');
     const [targetValue, setTargetValue] = useState('10000');
     const [periodDays, setPeriodDays] = useState('7');
     const [stakeAmount, setStakeAmount] = useState('0');
@@ -54,8 +56,17 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
     const { createGoalAndStake } = useEscrowActions();
     const { authenticated } = usePrivy();
 
+    const getMetricUnit = (metric: MetricType) => {
+        return metric === 'steps' ? 'steps' : 'calories';
+    };
+
+    const getDefaultTarget = (metric: MetricType) => {
+        return metric === 'steps' ? '10000' : '2000';
+    };
+
     const resetForm = () => {
         setTitle('');
+        setMetricType('steps');
         setTargetValue('10000');
         setPeriodDays('7');
         setStakeAmount('0');
@@ -68,8 +79,12 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
 
     const handleClose = () => {
         setOpen(false);
-        // Delay reset to allow animation/transition if needed, or just reset on next open
         setTimeout(resetForm, 300);
+    };
+
+    const handleMetricChange = (value: MetricType) => {
+        setMetricType(value);
+        setTargetValue(getDefaultTarget(value));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -108,9 +123,9 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
             // 1. Create Goal in Database
             const result = await createGoal(userId, groupId, {
                 title: title.trim(),
-                type: 'steps',
+                type: metricType,
                 target_value: targetNum,
-                unit: 'steps',
+                unit: getMetricUnit(metricType),
                 period_days: periodNum,
                 staking_opt_in: stakeNum > 0,
             });
@@ -306,23 +321,26 @@ export default function CreateGoalDialog({ groupId, userId, onGoalCreated }: Cre
                             {/* Metric Type */}
                             <div className="grid gap-2">
                                 <Label htmlFor="metric">Metric</Label>
-                                <Select disabled value="steps">
+                                <Select value={metricType} onValueChange={handleMetricChange} disabled={loading}>
                                     <SelectTrigger id="metric">
                                         <SelectValue placeholder="Select metric" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="steps">Step Count</SelectItem>
+                                        <SelectItem value="calories">Calories Burned</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             {/* Target Value */}
                             <div className="grid gap-2">
-                                <Label htmlFor="target">Target (total steps)</Label>
+                                <Label htmlFor="target">
+                                    Target (total {getMetricUnit(metricType)})
+                                </Label>
                                 <Input
                                     id="target"
                                     type="number"
-                                    placeholder="10000"
+                                    placeholder={getDefaultTarget(metricType)}
                                     value={targetValue}
                                     onChange={(e) => setTargetValue(e.target.value)}
                                     disabled={loading}

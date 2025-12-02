@@ -88,7 +88,7 @@ export default function GroupDetailPage() {
                     <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Group not found'}</p>
                     <Link
                         href="/"
-                        className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+                        className="text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300"
                     >
                         ← Back to Dashboard
                     </Link>
@@ -126,7 +126,7 @@ export default function GroupDetailPage() {
                                     {group.group_members?.length || 0} members
                                 </span>
                                 {isOwner && (
-                                    <span className="text-xs bg-violet-600 text-white px-2 py-1 rounded-full">
+                                    <span className="text-xs bg-yellow-600 text-black font-bold px-2 py-1 rounded-full">
                                         Owner
                                     </span>
                                 )}
@@ -146,8 +146,8 @@ export default function GroupDetailPage() {
                         <button
                             onClick={() => setActiveTab('overview')}
                             className={`pb-4 px-2 border-b-2 transition-colors ${activeTab === 'overview'
-                                ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                                ? 'border-yellow-600 text-yellow-600 dark:text-yellow-400'
+                                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400'
                                 }`}
                         >
                             <div className="flex items-center gap-2">
@@ -159,8 +159,8 @@ export default function GroupDetailPage() {
                             <button
                                 onClick={() => setActiveTab('invite')}
                                 className={`pb-4 px-2 border-b-2 transition-colors ${activeTab === 'invite'
-                                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                                    ? 'border-yellow-600 text-yellow-600 dark:text-yellow-400'
+                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400'
                                     }`}
                             >
                                 <div className="flex items-center gap-2">
@@ -173,8 +173,8 @@ export default function GroupDetailPage() {
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`pb-4 px-2 border-b-2 transition-colors ${activeTab === 'settings'
-                                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                                    ? 'border-yellow-600 text-yellow-600 dark:text-yellow-400'
+                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400'
                                     }`}
                             >
                                 <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export default function GroupDetailPage() {
             <div className="max-w-6xl mx-auto px-6 pb-8 text-center">
                 <Link
                     href="/escrow-test"
-                    className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-violet-600 dark:text-gray-400 dark:hover:text-violet-400 transition-colors"
+                    className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-yellow-600 dark:text-gray-400 dark:hover:text-yellow-400 transition-colors"
                 >
                     <Target size={16} />
                     Test Escrow Dashboard

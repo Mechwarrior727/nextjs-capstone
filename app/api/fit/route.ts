@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePrivySession } from "@/lib/privy";
+import { checkRateLimit } from "@/lib/sanitization";
 
 interface GoogleFitData {
   days: Array<{ date: string; steps: number; calories: number }>;
@@ -124,81 +125,106 @@ async function fetchGoogleFitData(
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    let { accessToken, startTimeMillis, endTimeMillis } = await req.json();
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: "Missing accessToken" },
-        { status: 400 }
-      );
-    }
-
-    // H-severity fix — validate timestamps
     try {
-      ({ start: startTimeMillis, end: endTimeMillis } = validateTimes(
-        startTimeMillis,
-        endTimeMillis
-      ));
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 400 });
+        const body = await req.json();
+        let { accessToken, startTimeMillis, endTimeMillis } = body;
+
+        // Rate limiting
+        const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+        const rateLimitCheck = checkRateLimit(`fit-api:${clientIp}`, 30, 60000); // 30 per minute
+        if (!rateLimitCheck.allowed) {
+            return NextResponse.json(
+                { error: `Rate limit exceeded. Try again in ${rateLimitCheck.retryAfter}s` },
+                { status: 429 }
+            );
+        }
+
+        // Validate access token
+        if (!accessToken || typeof accessToken !== 'string') {
+            return NextResponse.json(
+                { error: "Missing or invalid accessToken" },
+                { status: 400 }
+            );
+        }
+
+        // Sanitize token - remove whitespace and limit length
+        accessToken = accessToken.trim().slice(0, 2048);
+
+        if (accessToken.length < 10) {
+            return NextResponse.json(
+                { error: "Invalid accessToken" },
+                { status: 400 }
+            );
+        }
+
+        // Validate timestamps
+        try {
+            ({ start: startTimeMillis, end: endTimeMillis } = validateTimes(
+                startTimeMillis,
+                endTimeMillis
+            ));
+        } catch (e: any) {
+            return NextResponse.json({ error: e.message }, { status: 400 });
+        }
+
+        // Limit time range to prevent abuse (max 2 years)
+        const maxRange = 2 * 365 * 24 * 60 * 60 * 1000;
+        if (endTimeMillis - startTimeMillis > maxRange) {
+            return NextResponse.json(
+                { error: "Time range too large. Maximum 2 years allowed" },
+                { status: 400 }
+            );
+        }
+
+        const { user } = await requirePrivySession(req);
+
+        // ... rest of existing logic
+        const { days, totalSteps, totalCalories } = await fetchGoogleFitData(
+            accessToken,
+            startTimeMillis,
+            endTimeMillis
+        );
+
+        const protocol = req.headers.get("x-forwarded-proto") || "http";
+        const host = req.headers.get("host");
+        const baseUrl = `${protocol}://${host}`;
+
+        const safeDays = days.map((d) => ({
+            date: d.date,
+            steps: Math.round(d.steps),
+            calories: Math.round(d.calories),
+        }));
+
+        const upsert = await fetch(`${baseUrl}/api/db/upsert-health`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: req.headers.get("cookie") || "",
+            },
+            body: JSON.stringify({ data: safeDays }),
+        });
+
+        const result = await upsert.json();
+        if (!upsert.ok) {
+            console.error("[fit] Upsert failed:", result);
+            throw new Error(result.error || "Upsert route failed");
+        }
+
+        console.log(`[fit] Synced ${result.inserted} days of data for user ${user.id}`);
+
+        return NextResponse.json({
+            success: true,
+            data: { days: safeDays, totalSteps, totalCalories },
+            synced: true,
+        });
+    } catch (err: any) {
+        console.error("[fit] Backend error:", err);
+        return NextResponse.json(
+            {
+                error: "Failed to fetch or sync Google Fit data",
+                details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+            },
+            { status: 500 }
+        );
     }
-
-    const { user } = await requirePrivySession(req);
-
-    const { days, totalSteps, totalCalories } = await fetchGoogleFitData(
-      accessToken,
-      startTimeMillis,
-      endTimeMillis
-    );
-
-    const protocol = req.headers.get("x-forwarded-proto") || "http";
-    const host = req.headers.get("host");
-    const baseUrl = `${protocol}://${host}`;
-
-    console.log(
-      "[fit] Upserting health data via:",
-      `${baseUrl}/api/db/upsert-health`
-    );
-
-    const safeDays = days.map((d) => ({
-      date: d.date,
-      steps: Math.round(d.steps),
-      calories: Math.round(d.calories),
-    }));
-
-    const upsert = await fetch(`${baseUrl}/api/db/upsert-health`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: req.headers.get("cookie") || "",
-      },
-      body: JSON.stringify({ data: safeDays }),
-    });
-
-    const result = await upsert.json();
-    if (!upsert.ok) {
-      console.error("[fit] Upsert failed:", result);
-      throw new Error(result.error || "Upsert route failed");
-    }
-
-    console.log(
-      `[fit] Synced ${result.inserted} days of data for user ${user.id}`
-    );
-
-    return NextResponse.json({
-      success: true,
-      data: { days: safeDays, totalSteps, totalCalories },
-      synced: true,
-    });
-  } catch (err: any) {
-    console.error("[fit] Backend error:", err);
-    return NextResponse.json(
-      {
-        error: "Failed to fetch or sync Google Fit data",
-        details: err.message,
-      },
-      { status: 500 }
-    );
-  }
 }

@@ -39,6 +39,8 @@ export default function GroupSettings({ group, onUpdate, userId }: GroupSettings
     const [success, setSuccess] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const MAX_DESCRIPTION_LENGTH = 50;
+
     const hasChanges =
         name !== group.name ||
         description !== (group.description || '') ||
@@ -117,12 +119,12 @@ export default function GroupSettings({ group, onUpdate, userId }: GroupSettings
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             disabled={loading}
-                            maxLength={500}
+                            maxLength={MAX_DESCRIPTION_LENGTH}
                             placeholder="What's this group about?"
                             rows={3}
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                            {description.length}/500 characters
+                            {description.length}/{MAX_DESCRIPTION_LENGTH} characters
                         </p>
                     </div>
 

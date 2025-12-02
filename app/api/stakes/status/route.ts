@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { fetchStakeAccount } from "@/lib/solana";
-
+import { checkRateLimit, sanitizeText } from "@/lib/sanitization";
 /**
  * GET /api/stakes/status?goalHash=<hex>&stakerAddress=<pubkey>
  * Fetches stake account data for a specific staker
  */
 export async function GET(req: NextRequest) {
+
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitCheck = checkRateLimit(`stakes-status:${clientIp}`, 60, 60000);
+    if (!rateLimitCheck.allowed) {
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
+    // Validate goalHash (same as stakes/goal)
+    const goalHash = req.nextUrl.searchParams.get("goalHash");
+    if (!goalHash || !/^[0-9a-fA-F]{64}$/.test(goalHash)) {
+        return NextResponse.json({ error: "Invalid goalHash" }, { status: 400 });
+    }
+
+    // Validate stakerAddress before creating PublicKey
+    const stakerAddress = req.nextUrl.searchParams.get("stakerAddress");
+    if (!stakerAddress || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(stakerAddress)) {
+        return NextResponse.json({ error: "Invalid stakerAddress" }, { status: 400 });
+    }
+
   try {
     const goalHash = req.nextUrl.searchParams.get("goalHash");
     const stakerAddress = req.nextUrl.searchParams.get("stakerAddress");
