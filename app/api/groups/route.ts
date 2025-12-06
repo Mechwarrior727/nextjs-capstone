@@ -6,7 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  try {
+    try {
     const user = await requirePrivyUser(req);
     const body = await req.json();
 

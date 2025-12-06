@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePrivyUser } from "@/lib/privy";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/sanitization";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+    const user = await requirePrivyUser(req);
+    const rateLimitCheck = checkRateLimit(`finance-goals:${user.id}`, 100, 60000);
+    if (!rateLimitCheck.allowed) {
+        return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+    }
   try {
     const user = await requirePrivyUser(req);
     const supabase = getSupabaseAdmin();

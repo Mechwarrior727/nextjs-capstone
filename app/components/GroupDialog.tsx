@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { createGroup } from '@/lib/groups';
+import { sanitizeGroupName } from '@/lib/sanitization';
 
 interface CreateGroupDialogProps {
     userId: string;
@@ -30,15 +31,19 @@ export default function CreateGroupDialog({ userId, onGroupCreated }: CreateGrou
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!groupName.trim()) {
-            setError('Group name is required');
+        // Sanitize and validate input
+        const { valid, sanitized, error: validationError } = sanitizeGroupName(groupName);
+
+        if (!valid) {
+            setError(validationError || 'Invalid group name');
             return;
         }
 
         setLoading(true);
         setError(null);
 
-        const result = await createGroup(userId, groupName.trim());
+        // Use sanitized value
+        const result = await createGroup(userId, sanitized);
 
         setLoading(false);
 
@@ -76,7 +81,7 @@ export default function CreateGroupDialog({ userId, onGroupCreated }: CreateGrou
                                 value={groupName}
                                 onChange={(e) => setGroupName(e.target.value)}
                                 disabled={loading}
-                                maxLength={50}
+                                maxLength={100}
                             />
                             {error && (
                                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
